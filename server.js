@@ -8,6 +8,7 @@ const PORT = process.env.PORT || 3000;
 // Allow requests from any origin (your local HTML file, or wherever pulse/ is hosted)
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 
 // ── Health check ──
 app.get('/', (req, res) => {
