@@ -177,15 +177,9 @@ button{cursor:pointer;font-family:inherit;border:none;background:none;}
           </label>
         </div>
 
-        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
-          <div style="font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);margin-bottom:6px;">CLAUDE API KEY — AI insights + journal analysis</div>
-          <input class="token-in" id="akey" type="password" placeholder="sk-ant-..." style="margin-bottom:4px;" oninput="S.apiKey=this.value.trim();persistCredentials();"/>
-          <p style="font-size:10px;color:var(--muted);">Get from console.anthropic.com — saved in your browser only.</p>
-        </div>
-
         <div class="err-box" id="err-box"></div>
       </div>
-      <p class="foot">All data stays in your browser.<br>Tokens + journal entries saved locally — no re-entry needed.</p>
+      <p class="foot">All data stays in your browser.<br>Tokens + journal entries saved locally on this device.</p>
     </div>
   </div>
 </div>
@@ -527,9 +521,7 @@ function stopVoice(){
 // AI AUTO-TAG (Claude Haiku — fast + cheap)
 // ═══════════════════════════════════════════
 async function autoTagEntry(text,existingTags,structuredMeta){
-  // Read key fresh from input field in case S.apiKey wasn't set
-  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
-  if(!key||!text||text.length<10)return null;
+  if(!text||text.length<10)return null;
   var metaCtx='';
   if(structuredMeta){
     if(structuredMeta.meal_heaviness)metaCtx+='\nMeal heaviness logged: '+structuredMeta.meal_heaviness;
@@ -553,9 +545,9 @@ async function autoTagEntry(text,existingTags,structuredMeta){
     +'"suggested_tags": ["from: Morning walk,Evening walk,Meditation,Rest day,Light training,Intense training,Work stress,Social night,Late meal,Couldn\'t sleep,Low stress day,High stress,Travel"]\n'
     +'}';
   try{
-    var res=await fetch('https://api.anthropic.com/v1/messages',{
+    var res=await fetch(PROXY_URL+'/claude',{
       method:'POST',
-      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]})
     });
     var d=await res.json();
@@ -603,8 +595,7 @@ async function saveJournal(){
   if(btn){btn.textContent='Saving...';btn.disabled=true;}
 
   // Run AI extraction in background
-  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
-  if(text&&key){
+  if(text){
     var ai=await autoTagEntry(text,[],structuredMeta);
     if(ai){
       S.entries[date].ai=ai;
@@ -634,8 +625,6 @@ function toggleDiary(date){
 // CLAUDE REPORT API
 // ═══════════════════════════════════════════
 async function callClaude(){
-  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
-  if(!key)return null;
   var an=S.an,l7=an.data.slice(-7);
   var aHRV=avg(l7,'hrv').toFixed(1),aRead=avg(l7,'readiness').toFixed(1),aSh=avg(l7,'sleep_hours').toFixed(1),aREM=avg(l7,'rem_hours').toFixed(1),aRHR=avg(l7,'rhr').toFixed(1);
   var hrvSlope=linSlope(an.data.map(function(d){return d.hrv||0;}));
@@ -675,7 +664,7 @@ async function callClaude(){
     +'Respond ONLY with valid JSON (no markdown):\n'
     +'{"headline":"2 sentences, specific numbers, key insight","drivers":["finding 1 with data","finding 2","finding 3","finding 4","finding 5"],"causal":["causal link 1","link 2","link 3"],"trajectory":"2 sentences on 30-90 day direction","next_week":["action 1","action 2","action 3","action 4"],"today":"1 sentence for today"}';
   try{
-    var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:prompt}]})});
+    var res=await fetch(PROXY_URL+'/claude',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:prompt}]})});
     var d=await res.json();if(d.error)throw new Error(d.error.message);
     var rawText=d.content&&d.content[0]&&d.content[0].text;
     if(!rawText)throw new Error('Empty response');
@@ -860,7 +849,7 @@ function rToday(){
     +'</div>';
   h+='</div>';
 
-  if(S.apiKey)h+='<div style="font-size:10px;color:var(--purple);margin-bottom:10px;">✦ AI extracts foods · symptoms · workout quality · mood · morning · stress from your text</div>';
+  h+='<div style="font-size:10px;color:var(--purple);margin-bottom:10px;">✦ AI extracts foods · symptoms · workout quality · mood · morning · stress from your text</div>';
 
   h+='<button id="save-btn" class="save-btn" onclick="saveJournal()">'+(saved?'✓ Update entry':'Save check-in')+'</button>';
   h+='</div>'; // end check-in card
@@ -1189,7 +1178,7 @@ function rJournal(){
         if(isExpanded){
           h+='<div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap;">'+esc(e.text)+'</div>';
           // Re-run AI tag if no AI data yet and API key exists
-          if(!e.ai&&S.apiKey)h+='<button data-retag="'+esc(date)+'" onclick="retagEntry(\''+date.replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--purple);margin-top:8px;padding:5px 10px;border:1px solid var(--purple);border-radius:8px;">✦ Generate AI summary</button>';
+          if(!e.ai)h+='<button data-retag="'+esc(date)+'" onclick="retagEntry(\''+date.replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--purple);margin-top:8px;padding:5px 10px;border:1px solid var(--purple);border-radius:8px;">✦ Generate AI summary</button>';
         }
       }
 
@@ -1207,7 +1196,6 @@ function rJournal(){
 
 async function retagEntry(date){
   var e=S.entries[date];if(!e||!e.text)return;
-  if(!S.apiKey){alert('Add your Claude API key on the connect screen to enable AI analysis.');return;}
   var btn=document.querySelector('[data-retag="'+date+'"]');
   if(btn){btn.textContent='✦ Generating...';btn.disabled=true;}
   var meta={meal_heaviness:e.meal_heaviness,dinner_time:e.dinner_hour?formatDinnerTime(e.dinner_hour):null};
