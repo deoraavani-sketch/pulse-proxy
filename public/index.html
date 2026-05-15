@@ -210,7 +210,6 @@ var _creds=loadCredentials();
 var S={
   an:null,mode:'token',rep:null,repLoading:false,
   trendsTab:'recovery',
-  apiKey:_creds.apiKey||null,
   ouraToken:_creds.ouraToken||null,
   entries:loadEntries(),
   expandedDiary:null,
@@ -229,14 +228,12 @@ function persistEntries(){try{localStorage.setItem('pulse_v8_entries',JSON.strin
 
 function loadCredentials(){
   return{
-    ouraToken:localStorage.getItem('pulse_oura_token')||'',
-    apiKey:localStorage.getItem('pulse_claude_key')||''
+    ouraToken:localStorage.getItem('pulse_oura_token')||''
   };
 }
 function persistCredentials(){
   try{
     if(S.ouraToken)localStorage.setItem('pulse_oura_token',S.ouraToken);
-    if(S.apiKey)localStorage.setItem('pulse_claude_key',S.apiKey);
   }catch(e){}
 }
 
@@ -899,8 +896,8 @@ function rToday(){
 function rReport(){
   var an=S.an,l7=an.data.slice(-7);
   var aHRV=avg(l7,'hrv').toFixed(1),aRead=avg(l7,'readiness').toFixed(1),aSh=avg(l7,'sleep_hours').toFixed(1);
-  var r=S.rep,noKey=!S.apiKey;
-  var headline=r?r.headline:S.repLoading?'Analysing data + journal context...':noKey?'Add your Claude API key on the connect screen to unlock AI insights.':'Tap Report to generate your personalised weekly analysis.';
+  var r=S.rep;
+  var headline=r?r.headline:S.repLoading?'Analysing data + journal context...':'Tap Report to generate your personalised weekly analysis.';
   var drivers=r?r.drivers:an.findings.map(function(f){return f.text;});
   var causal=r?r.causal:[];var trajectory=r?r.trajectory:null;var nextWeek=r?r.next_week:[];
   var h='<div class="wrap">';
@@ -1281,14 +1278,9 @@ window.addEventListener('DOMContentLoaded',function(){
   var creds=loadCredentials();
   if(creds.ouraToken){
     var tknEl=document.getElementById('tkn');
-    if(tknEl){tknEl.value=creds.ouraToken;}
+    if(tknEl)tknEl.value=creds.ouraToken;
     var bcn=document.getElementById('bcn');
     if(bcn)bcn.disabled=false;
-  }
-  if(creds.apiKey){
-    var akeyEl=document.getElementById('akey');
-    if(akeyEl)akeyEl.value=creds.apiKey;
-    S.apiKey=creds.apiKey;
   }
 });
 function doCSV(input){
