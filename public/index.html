@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>pulse/</title>
+<style>
+:root{
+  --green:#2D6A4F;--gl:#EAF3EE;
+  --amber:#B5630A;--al:#FEF3E2;
+  --red:#B5303A;--rl:#FDECEE;
+  --blue:#185FA5;--bl:#EBF2FB;
+  --purple:#6B4DA0;--pl:#F0EBF8;
+  --text:#1A1915;--muted:#7A7870;
+  --border:#E0DDD6;--bg:#F5F3EE;--surface:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;}
+.mono{font-family:'SF Mono',Monaco,Consolas,monospace;}
+button{cursor:pointer;font-family:inherit;border:none;background:none;}
+.screen{display:none;}.screen.active{display:block;}
+
+/* nav */
+.nav{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10;}
+.nav-logo{font-family:'SF Mono',Monaco,monospace;font-size:16px;font-weight:500;}
+.tab-bar{display:flex;gap:3px;background:var(--bg);border-radius:8px;padding:3px;}
+.tab-btn{padding:5px 10px;border-radius:6px;font-size:11px;color:var(--muted);transition:all .15s;}
+.tab-btn.active{background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+
+/* layout */
+.wrap{max-width:480px;margin:0 auto;padding:16px;}
+
+/* cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;}
+.card-body{padding:14px 16px;}
+.card-hdr{padding:12px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.section-hdr{display:flex;align-items:center;gap:8px;margin-bottom:14px;}
+.section-icon{width:28px;height:28px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+
+/* tiles */
+.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;}
+.tile-lbl{font-size:10px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:3px;}
+.tile-val{font-size:20px;font-weight:500;}
+.tile-sub{font-size:10px;color:var(--muted);margin-top:2px;}
+
+/* zone bar */
+.zone-wrap{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px;}
+.zone-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.zone-pill{font-size:10px;font-family:'SF Mono',Monaco,Consolas,monospace;padding:3px 9px;border-radius:20px;font-weight:500;}
+.zone-track{height:6px;border-radius:3px;background:linear-gradient(to right,var(--rl),var(--al),var(--gl));position:relative;margin-bottom:6px;}
+.zone-thumb{position:absolute;top:-4px;width:14px;height:14px;border-radius:50%;border:2px solid white;transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+.zone-lbls{display:flex;justify-content:space-between;font-size:10px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--muted);}
+
+/* stress bar */
+.stress-bar-wrap{height:6px;border-radius:3px;background:linear-gradient(to right,var(--gl),var(--al),var(--rl));position:relative;margin-bottom:4px;}
+.stress-thumb{position:absolute;top:-4px;width:14px;height:14px;border-radius:50%;border:2px solid white;transform:translateX(-50%);box-shadow:0 1px 4px rgba(0,0,0,.25);}
+
+/* action list */
+.act-item{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:12px;line-height:1.5;align-items:flex-start;}
+.act-item:first-child{border-top:none;}
+.dot6{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+
+/* journal input */
+.journal-area{width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);font-size:13px;font-family:inherit;color:var(--text);background:var(--bg);resize:none;outline:none;line-height:1.6;transition:border-color .15s;}
+.journal-area:focus{border-color:var(--text);}
+.voice-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:8px;font-size:12px;background:var(--text);color:#fff;font-weight:500;transition:all .15s;}
+.voice-btn.recording{background:var(--red);}
+.voice-pulse{width:7px;height:7px;border-radius:50%;background:#fff;animation:vp 1s ease-in-out infinite;}
+@keyframes vp{0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(.7);}}
+
+/* smart questions */
+.sq-tag{font-size:11px;padding:5px 11px;border-radius:20px;border:1px solid var(--border);background:var(--surface);color:var(--muted);transition:all .15s;cursor:pointer;}
+.sq-tag.sel{background:var(--text);color:#fff;border-color:var(--text);}
+
+/* tag chips */
+.chip{font-size:11px;padding:4px 10px;border-radius:16px;border:1px solid var(--border);color:var(--muted);background:transparent;transition:all .15s;}
+.chip.sel{background:var(--gl);border-color:var(--green);color:var(--green);}
+
+/* journal diary cards */
+.diary-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;}
+.diary-date{font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);text-transform:uppercase;margin-bottom:6px;}
+.diary-summary{font-size:12px;line-height:1.5;margin-bottom:6px;}
+.diary-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px;}
+.diary-tag{font-size:10px;padding:2px 8px;border-radius:10px;background:var(--bg);border:1px solid var(--border);color:var(--muted);}
+.diary-tag.ai{border-color:var(--purple);color:var(--purple);background:var(--pl);}
+.diary-raw{font-size:11px;color:var(--muted);line-height:1.4;margin-top:4px;cursor:pointer;}
+.mood-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;}
+
+/* save */
+.save-btn{width:100%;padding:11px;border-radius:10px;background:var(--text);color:#fff;font-size:13px;font-weight:500;margin-top:12px;transition:opacity .15s;}
+.save-btn:active{opacity:.7;}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;}
+
+/* report */
+.hero{background:var(--text);border-radius:14px;padding:20px;color:#fff;margin-bottom:12px;}
+.hero-lbl{font-family:'SF Mono',Monaco,monospace;font-size:10px;opacity:.55;letter-spacing:.06em;text-transform:uppercase;margin-bottom:10px;}
+.hero-hl{font-size:15px;font-weight:300;line-height:1.5;margin-bottom:16px;min-height:44px;}
+.hero-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.hsv{font-size:18px;font-weight:300;font-family:'SF Mono',Monaco,monospace;text-align:center;}
+.hsl{font-size:9px;opacity:.55;text-transform:uppercase;letter-spacing:.04em;text-align:center;margin-top:3px;}
+.find-row{display:flex;gap:10px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;line-height:1.5;}
+.next-item{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--border);font-size:12px;line-height:1.5;}
+.next-num{font-family:'SF Mono',Monaco,monospace;font-size:11px;color:var(--green);flex-shrink:0;margin-top:1px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.stat-block{background:var(--bg);border-radius:8px;padding:10px 12px;}
+.stat-block-lbl{font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);margin-bottom:4px;}
+.stat-block-val{font-size:18px;font-weight:300;}
+.causal-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:12px;line-height:1.5;}
+.causal-item:last-child{border-bottom:none;}
+.causal-lbl{font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px;}
+.green-card{background:var(--gl);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;}
+
+/* trends */
+.ttabs{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px;}
+.ttab{font-size:11px;padding:6px 14px;border-radius:20px;border:1px solid var(--border);color:var(--muted);white-space:nowrap;cursor:pointer;transition:all .15s;}
+.ttab.active{background:var(--text);color:#fff;border-color:var(--text);}
+.chart-wrap{width:100%;}
+.dow-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);}
+.dow-lbl{width:32px;font-size:11px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);}
+.dow-track{flex:1;height:18px;background:var(--bg);border-radius:4px;overflow:hidden;}
+.dow-fill{height:100%;border-radius:4px;opacity:.65;}
+.sec-lbl{font-size:10px;font-family:'SF Mono',Monaco,Consolas,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;}
+
+/* connect */
+.con-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;}
+.con-inner{width:100%;max-width:380px;}
+.con-logo{font-family:'SF Mono',Monaco,monospace;font-size:28px;font-weight:500;letter-spacing:-.02em;text-align:center;margin-bottom:12px;}
+.con-h1{font-size:22px;font-weight:300;line-height:1.3;text-align:center;margin-bottom:8px;}
+.con-sub{font-size:13px;color:var(--muted);line-height:1.6;text-align:center;margin-bottom:28px;}
+.con-card{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;}
+.mbar{display:flex;gap:4px;background:var(--bg);border-radius:8px;padding:3px;margin-bottom:20px;}
+.mbtn{flex:1;padding:7px 12px;border-radius:6px;font-size:12px;color:var(--muted);transition:all .15s;cursor:pointer;}
+.mbtn.active{background:var(--surface);color:var(--text);font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.con-note{font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.5;}
+.token-in{width:100%;padding:10px 12px;border-radius:8px;border:1px solid var(--border);font-size:11px;font-family:'SF Mono',Monaco,Consolas,monospace;background:var(--bg);color:var(--text);margin-bottom:12px;outline:none;display:block;}
+.cta{width:100%;padding:12px;border-radius:10px;background:var(--text);color:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .15s;}
+.cta:disabled{opacity:.4;cursor:not-allowed;}
+.csv-lbl{display:block;padding:28px;border-radius:10px;border:2px dashed var(--border);text-align:center;cursor:pointer;color:var(--muted);font-size:13px;line-height:1.6;}
+.err-box{margin-top:12px;font-size:12px;color:var(--red);background:var(--rl);padding:10px 12px;border-radius:8px;line-height:1.5;display:none;}
+.warn-box{margin-top:12px;font-size:12px;color:var(--amber);background:var(--al);padding:10px 12px;border-radius:8px;line-height:1.5;}
+.foot{text-align:center;margin-top:14px;font-size:11px;color:var(--muted);line-height:1.6;}
+</style>
+</head>
+<body>
+
+<!-- ── CONNECT SCREEN ── -->
+<div id="sc-connect" class="screen active">
+  <div class="con-wrap">
+    <div class="con-inner">
+      <div class="con-logo mono">pulse/</div>
+      <div class="con-h1">Your Oura data,<br><strong>finally actionable.</strong></div>
+      <p class="con-sub">Insights that explain <em>why</em> — not just what happened.</p>
+      <div class="con-card">
+        <div class="mbar">
+          <button class="mbtn active" id="btn-mt" onclick="setMode('token')">API Token</button>
+          <button class="mbtn" id="btn-mc" onclick="setMode('csv')">CSV Upload</button>
+        </div>
+
+        <div id="panel-token">
+          <p class="con-note">Get your personal access token from <span class="mono" style="font-size:10px;color:#185FA5;">cloud.ouraring.com/personal-access-tokens</span></p>
+          <input class="token-in" id="tkn" type="text" placeholder="paste_your_oura_token_here" oninput="document.getElementById('bcn').disabled=!this.value.trim()"/>
+          <div style="margin-bottom:12px;">
+            <div style="font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);margin-bottom:4px;">PROXY URL — leave default unless self-hosting</div>
+            <input class="token-in" id="proxy-url" type="text" value="https://pulse-proxy-production-9450.up.railway.app" style="margin-bottom:0;" oninput="PROXY_URL=this.value.trim()||'https://pulse-proxy-production-9450.up.railway.app'"/>
+          </div>
+          <button class="cta" id="bcn" disabled onclick="doToken()">Connect Oura →</button>
+        </div>
+
+        <div id="panel-csv" style="display:none;">
+          <p class="con-note" style="margin-bottom:12px;">Export from Oura app → Profile → Settings → Export Data (Trends CSV)</p>
+          <label class="csv-lbl">
+            <div style="font-size:32px;margin-bottom:8px;">📄</div>
+            <div>Drop your Oura trends CSV here</div>
+            <div style="font-size:11px;margin-top:4px;">or tap to browse</div>
+            <input type="file" accept=".csv" style="display:none;" onchange="doCSV(this)"/>
+          </label>
+        </div>
+
+        <div style="margin-top:16px;padding-top:16px;border-top:1px solid var(--border);">
+          <div style="font-size:10px;font-family:'SF Mono',Monaco,monospace;color:var(--muted);margin-bottom:6px;">CLAUDE API KEY — AI insights + journal analysis</div>
+          <input class="token-in" id="akey" type="password" placeholder="sk-ant-..." style="margin-bottom:4px;" oninput="S.apiKey=this.value.trim();persistCredentials();"/>
+          <p style="font-size:10px;color:var(--muted);">Get from console.anthropic.com — saved in your browser only.</p>
+        </div>
+
+        <div class="err-box" id="err-box"></div>
+      </div>
+      <p class="foot">All data stays in your browser.<br>Tokens + journal entries saved locally — no re-entry needed.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ── MAIN APP ── -->
+<div id="sc-app" class="screen">
+  <div class="nav">
+    <span class="nav-logo mono">pulse/</span>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tb-today" onclick="goTab('today')">Today</button>
+      <button class="tab-btn" id="tb-report" onclick="goTab('report')">Report</button>
+      <button class="tab-btn" id="tb-journal" onclick="goTab('journal')">Journal</button>
+      <button class="tab-btn" id="tb-trends" onclick="goTab('trends')">Trends</button>
+    </div>
+    <button style="font-size:11px;color:var(--muted);padding:4px 8px;" onclick="doReset()">↩</button>
+  </div>
+  <div id="tc-today" class="screen active"></div>
+  <div id="tc-report" class="screen"></div>
+  <div id="tc-journal" class="screen"></div>
+  <div id="tc-trends" class="screen"></div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+var _creds=loadCredentials();
+var S={
+  an:null,mode:'token',rep:null,repLoading:false,
+  trendsTab:'recovery',
+  apiKey:_creds.apiKey||null,
+  ouraToken:_creds.ouraToken||null,
+  entries:loadEntries(),
+  expandedDiary:null,
+  journalFilter:null,
+  mealHeaviness:null,
+  dinnerTime:20.5
+};
+
+function loadEntries(){
+  var v7={},v8={};
+  try{v7=JSON.parse(localStorage.getItem('pulse_v7_entries')||'{}');}catch(e){}
+  try{v8=JSON.parse(localStorage.getItem('pulse_v8_entries')||'{}');}catch(e){}
+  return Object.assign({},v7,v8);
+}
+function persistEntries(){try{localStorage.setItem('pulse_v8_entries',JSON.stringify(S.entries));}catch(e){}}
+
+function loadCredentials(){
+  return{
+    ouraToken:localStorage.getItem('pulse_oura_token')||'',
+    apiKey:localStorage.getItem('pulse_claude_key')||''
+  };
+}
+function persistCredentials(){
+  try{
+    if(S.ouraToken)localStorage.setItem('pulse_oura_token',S.ouraToken);
+    if(S.apiKey)localStorage.setItem('pulse_claude_key',S.apiKey);
+  }catch(e){}
+}
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+function avg(arr,key){
+  var valid=arr.filter(function(d){return parseFloat(key?d[key]:d)>0;});
+  if(!valid.length)return 0;
+  return valid.reduce(function(s,d){return s+(parseFloat(key?d[key]:d)||0);},0)/valid.length;
+}
+function fmtDate(ds){
+  return new Date(ds+'T12:00:00').toLocaleDateString('en-GB',{weekday:'short',day:'2-digit',month:'short'}).toUpperCase();
+}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function pad2(n){return n<10?'0'+n:''+n;}
+function linSlope(vals){
+  var n=vals.length;if(n<3)return 0;
+  var sx=0,sy=0,sxy=0,sx2=0;
+  for(var i=0;i<n;i++){sx+=i;sy+=vals[i];sxy+=i*vals[i];sx2+=i*i;}
+  return(n*sxy-sx*sy)/(n*sx2-sx*sx);
+}
+
+// ═══════════════════════════════════════════
+// MODE TOGGLE
+// ═══════════════════════════════════════════
+function setMode(m){
+  S.mode=m;
+  document.getElementById('btn-mt').className='mbtn'+(m==='token'?' active':'');
+  document.getElementById('btn-mc').className='mbtn'+(m==='csv'?' active':'');
+  document.getElementById('panel-token').style.display=m==='token'?'block':'none';
+  document.getElementById('panel-csv').style.display=m==='csv'?'block':'none';
+}
+
+// ═══════════════════════════════════════════
+// CSV PARSER
+// ═══════════════════════════════════════════
+function parseCSV(txt){
+  var lines=txt.trim().split('\n');
+  var hdrs=lines[0].split(',').map(function(h){return h.trim().replace(/^"|"$/g,'');});
+  var rows=lines.slice(1).map(function(line){
+    var vals=line.split(',').map(function(v){return v.trim().replace(/^"|"$/g,'');});
+    var row={};hdrs.forEach(function(h,i){row[h]=vals[i]||'';});
+    var bh=null;
+    if(row['Bedtime Start']){try{var d=new Date(row['Bedtime Start']);bh=((d.getUTCHours()+d.getUTCMinutes()/60)+8)%24;}catch(e){}}
+    function n(k){return parseFloat(row[k])||0;}
+    return{
+      date:row['date'],readiness:n('Readiness Score'),sleep_score:n('Sleep Score'),
+      activity_score:n('Activity Score'),hrv:n('Average HRV'),rhr:n('Average Resting Heart Rate'),
+      sleep_hours:n('Total Sleep Duration')/3600,deep_hours:n('Deep Sleep Duration')/3600,
+      rem_hours:n('REM Sleep Duration')/3600,light_hours:n('Light Sleep Duration')/3600,
+      sleep_efficiency:n('Sleep Efficiency'),respiratory_rate:n('Respiratory Rate'),
+      temp_deviation:n('Temperature Deviation (°C)'),steps:n('Steps'),bedtime_hour:bh,
+      stress_high:null,resilience_level:null
+    };
+  });
+  return rows.filter(function(d){return d.date&&d.hrv>0;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+}
+
+// ═══════════════════════════════════════════
+// OURA API  (via proxy — no CORS issues)
+// ═══════════════════════════════════════════
+// Default proxy URL — user can override if they self-host
+var PROXY_URL = 'https://pulse-proxy-production-9450.up.railway.app';
+
+async function ouraFetch(url, token){
+  // Rewrite Oura API URL to go through proxy
+  // e.g. https://api.ouraring.com/v2/usercollection/daily_readiness?...
+  //   -> PROXY_URL/oura/daily_readiness?...
+  var proxyUrl = url.replace('https://api.ouraring.com/v2/usercollection/', PROXY_URL + '/oura/');
+  var res = await fetch(proxyUrl, {
+    headers: { 'x-oura-token': token }
+  });
+  if(res.status === 401) throw new Error('auth_401');
+  if(res.status === 403) throw new Error('auth_403');
+  if(!res.ok) throw new Error('http_' + res.status);
+  return res.json();
+}
+
+async function fetchOura(token){
+  S.ouraToken=token;
+  var end=new Date(),start=new Date();start.setDate(start.getDate()-90);
+  var s=start.toISOString().split('T')[0],e=end.toISOString().split('T')[0];
+  var base='https://api.ouraring.com/v2/usercollection';
+
+  var [rD,slD,actD,sdD,stressD,resilD,wkD]=await Promise.all([
+    ouraFetch(base+'/daily_readiness?start_date='+s+'&end_date='+e,token).catch(function(e){if(e.message.startsWith('auth'))throw e;return{data:[]};}),
+    ouraFetch(base+'/daily_sleep?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};}),
+    ouraFetch(base+'/daily_activity?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};}),
+    ouraFetch(base+'/sleep?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};}),
+    ouraFetch(base+'/daily_stress?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};}),
+    ouraFetch(base+'/daily_resilience?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};}) ,
+    ouraFetch(base+'/workout?start_date='+s+'&end_date='+e,token).catch(function(){return{data:[]};})
+  ]);
+
+  // Debug: log what came back
+  console.log('Oura readiness count:', (rD.data||[]).length);
+  console.log('Oura daily_sleep count:', (slD.data||[]).length);
+  console.log('Oura sleep sessions count:', (sdD.data||[]).length);
+  console.log('Oura activity count:', (actD.data||[]).length);
+  if(sdD.data&&sdD.data.length){
+    var s0=sdD.data[0];
+    console.log('Sleep session[0] keys:', Object.keys(s0).join(', '));
+    console.log('Sleep session[0] day:', s0.day, 'type:', s0.type, 'average_hrv:', s0.average_hrv, 'bedtime_start:', s0.bedtime_start);
+  }
+  if(rD.data&&rD.data.length){
+    var r0=rD.data[0];
+    console.log('Readiness[0] keys:', Object.keys(r0).join(', '));
+    console.log('Readiness[0] day:', r0.day, 'score:', r0.score);
+  }
+
+  var by={};
+  (rD.data||[]).forEach(function(x){by[x.day]=Object.assign({},by[x.day],{date:x.day,readiness:x.score});});
+  (slD.data||[]).forEach(function(x){by[x.day]=Object.assign({},by[x.day],{sleep_score:x.score});});
+  (actD.data||[]).forEach(function(x){by[x.day]=Object.assign({},by[x.day],{steps:x.steps,activity_score:x.score});});
+  (sdD.data||[]).forEach(function(x){
+    if(!x.type||x.type==='long_sleep'){
+      var bh=null;try{var d=new Date(x.bedtime_start);bh=((d.getUTCHours()+d.getUTCMinutes()/60)+8)%24;}catch(e){}
+      by[x.day]=Object.assign({},by[x.day],{
+        hrv:x.average_hrv,rhr:x.lowest_heart_rate,
+        sleep_hours:(x.total_sleep_duration||0)/3600,deep_hours:(x.deep_sleep_duration||0)/3600,
+        rem_hours:(x.rem_sleep_duration||0)/3600,light_hours:(x.light_sleep_duration||0)/3600,
+        sleep_efficiency:x.efficiency,respiratory_rate:x.average_breath,
+        temp_deviation:x.temperature_deviation,bedtime_hour:bh
+      });
+    }
+  });
+  (stressD.data||[]).forEach(function(x){by[x.day]=Object.assign({},by[x.day],{stress_high:x.stress_high,recovery_high:x.recovery_high,day_summary:x.day_summary});});
+  (resilD.data||[]).forEach(function(x){by[x.day]=Object.assign({},by[x.day],{resilience_level:x.level,resilience_contributors:x.contributors});});
+
+  // Workouts — group by day, keep most intense per day
+  var workoutsByDay={};
+  (wkD.data||[]).forEach(function(w){
+    var day=w.day||( w.start_datetime?w.start_datetime.split('T')[0]:null);
+    if(!day)return;
+    var intensity=w.intensity||'moderate';
+    var intensityScore={'easy':1,'moderate':2,'hard':3}[intensity]||2;
+    if(!workoutsByDay[day]||intensityScore>(workoutsByDay[day]._score||0)){
+      workoutsByDay[day]={
+        type:w.activity||w.sport||'workout',
+        duration_min:w.duration?Math.round(w.duration/60):null,
+        intensity:intensity,
+        avg_hr:w.average_heart_rate||null,
+        calories:w.calories||null,
+        _score:intensityScore
+      };
+    }
+  });
+  Object.keys(workoutsByDay).forEach(function(day){
+    if(by[day])by[day].workout=workoutsByDay[day];
+    else by[day]={date:day,workout:workoutsByDay[day]};
+  });
+
+  var result=Object.values(by).filter(function(d){return d.date&&d.hrv>0;}).sort(function(a,b){return a.date.localeCompare(b.date);});
+
+  // Surface helpful debug info if empty
+  if(!result.length){
+    var allDays=Object.values(by);
+    var noHRV=allDays.filter(function(d){return d.date&&(!d.hrv||d.hrv===0);});
+    console.log('Days with data but no HRV:',noHRV.length,'Total days merged:',allDays.length);
+    if(allDays.length>0&&noHRV.length===allDays.length){
+      throw new Error('no_hrv');
+    }
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════
+// ANALYTICS
+// ═══════════════════════════════════════════
+function analyze(data){
+  var hvs=data.map(function(d){return d.hrv;}).filter(Boolean).sort(function(a,b){return a-b;});
+  var zones={
+    red:Math.round(hvs[Math.floor(hvs.length*0.25)]),
+    green:Math.round(hvs[Math.floor(hvs.length*0.60)]),
+    avg:Math.round(avg(data,'hrv')),peak:Math.round(Math.max.apply(null,hvs))
+  };
+  var rolling=data.map(function(d,i){
+    var o=Object.assign({},d,{lbl:d.date.slice(5)});
+    o.hrv_7d=i>=6?Math.round(avg(data.slice(i-6,i+1),'hrv')*10)/10:null;
+    // Stress load: proxy = 100 - readiness; use actual stress_high if available
+    o.stress_load=d.readiness>0?Math.max(0,100-d.readiness):null;
+    if(d.stress_high!=null&&d.stress_high>=0){
+      // Convert seconds of high stress to 0-100 scale (assuming max 8hr/day = 28800s)
+      o.stress_load=Math.min(100,Math.round(d.stress_high/288));
+    }
+    return o;
+  });
+  var DAYS=['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'];
+  var dowPat=DAYS.map(function(day){
+    var rows=data.filter(function(d){return new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})===day;});
+    return{day:day.slice(0,3),hrv:rows.length?Math.round(avg(rows,'hrv')*10)/10:0,
+      sleep:rows.length?Math.round(avg(rows,'sleep_score')):0,
+      stress:rows.length?Math.round(rows.reduce(function(s,d){return s+(d.readiness>0?100-d.readiness:0);},0)/rows.length):0,
+      count:rows.length};
+  });
+  var bins=[{l:'<10pm',min:18,max:22,r:[]},{l:'10–10:30',min:22,max:22.5,r:[]},{l:'10:30–11',min:22.5,max:23,r:[]},{l:'11–11:30',min:23,max:23.5,r:[]},{l:'>11:30',min:23.5,max:28,r:[]}];
+  data.forEach(function(d){
+    if(d.bedtime_hour==null)return;
+    var bh=d.bedtime_hour<12?d.bedtime_hour+24:d.bedtime_hour;
+    var b=bins.find(function(b){return bh>=b.min&&bh<b.max;});if(b)b.r.push(d);
+  });
+  var bedtime=bins.map(function(b){return{label:b.l,hrv:b.r.length?Math.round(avg(b.r,'hrv')):0,sleep:b.r.length?Math.round(avg(b.r,'sleep_score')):0,count:b.r.length};});
+  var last7=data.slice(-7),prev7=data.slice(-14,-7);
+  var l7h=Math.round(avg(last7,'hrv')),p7h=Math.round(avg(prev7,'hrv'));
+  var trend=l7h>p7h+2?'improving':l7h<p7h-2?'declining':'stable';
+  var today=data[data.length-1];
+  var zone=today.hrv>=zones.green?'green':today.hrv>=zones.red?'yellow':'red';
+
+  // Stress summary
+  var stressLast7=last7.reduce(function(s,d){return s+(d.readiness>0?100-d.readiness:30);},0)/last7.length;
+  var stressPrev7=prev7.length?prev7.reduce(function(s,d){return s+(d.readiness>0?100-d.readiness:30);},0)/prev7.length:stressLast7;
+  var stressTrend=stressLast7<stressPrev7-3?'improving':stressLast7>stressPrev7+3?'worsening':'stable';
+  var todayStress=today.readiness>0?Math.max(0,100-today.readiness):null;
+  if(today.stress_high!=null)todayStress=Math.min(100,Math.round(today.stress_high/288));
+
+  // Resilience label from API or derived
+  var resilienceLevel=null;
+  var resilLast=data.slice(-7).map(function(d){return d.resilience_level;}).filter(Boolean);
+  if(resilLast.length)resilienceLevel=resilLast[resilLast.length-1];
+
+  var findings=[];
+  var fri=data.filter(function(d){return new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})==='Friday';});
+  var oth=data.filter(function(d){return new Date(d.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'long'})!=='Friday';});
+  if(fri.length>2&&oth.length>2){var diff=Math.round(avg(oth,'sleep_score')-avg(fri,'sleep_score'));if(diff>3)findings.push({type:'warn',label:'FRIDAY PATTERN',text:'Sleep averages '+Math.round(avg(fri,'sleep_score'))+' on Fridays vs '+Math.round(avg(oth,'sleep_score'))+' other days — a consistent '+diff+'-pt weekly dip.'});}
+  var validBed=bedtime.filter(function(b){return b.count>1;});
+  if(validBed.length){var bestBed=validBed.slice().sort(function(a,b){return b.sleep-a.sleep;})[0];findings.push({type:'good',label:'BEST BEDTIME',text:bestBed.label+' bedtime produces best results — sleep score '+bestBed.sleep+', HRV '+bestBed.hrv+'ms.'});}
+  if(trend==='declining')findings.push({type:'warn',label:'HRV DECLINING',text:'7-day HRV fell from '+p7h+'ms to '+l7h+'ms. Reduce training intensity and prioritise sleep.'});
+  else if(trend==='improving')findings.push({type:'good',label:'HRV RISING',text:'7-day HRV rose from '+p7h+'ms to '+l7h+'ms. Body adapting well.'});
+  var rr0=avg(data.slice(0,7),'respiratory_rate'),rr1=avg(data.slice(-7),'respiratory_rate');
+  if(rr0-rr1>0.3)findings.push({type:'good',label:'FITNESS GAIN',text:'Respiratory rate improved '+rr0.toFixed(1)+'→'+rr1.toFixed(1)+' br/min — real aerobic adaptation.'});
+  if(stressTrend==='worsening')findings.push({type:'warn',label:'RISING STRESS',text:'Stress load up '+Math.round(stressLast7-stressPrev7)+' pts vs last week. Recovery is being compromised.'});
+  var sum={days:data.length,avgR:Math.round(avg(data,'readiness')),avgS:Math.round(avg(data,'sleep_score')),avgH:Math.round(avg(data,'hrv')),avgRHR:avg(data,'rhr').toFixed(1),avgSh:avg(data,'sleep_hours').toFixed(1),avgREM:avg(data,'rem_hours').toFixed(1),avgDeep:avg(data,'deep_hours').toFixed(1)};
+  return{data,rolling,zones,dowPat,bedtime,findings,l7h,p7h,trend,today,zone,sum,stressLast7:Math.round(stressLast7),stressPrev7:Math.round(stressPrev7),stressTrend,todayStress,resilienceLevel};
+}
+
+// ═══════════════════════════════════════════
+// ACTIVITY IMPACT
+// ═══════════════════════════════════════════
+var ALL_TAGS=['Evening walk','Morning walk','Meditation / breathing','Early bedtime','No alcohol','Light training','Rest day','Intense training','Alcohol','Late meal (>8pm)','Late bedtime','High stress','Travel','Social night','Low stress day','Work stress'];
+function computeImpact(data,entries){
+  var baseHRV=avg(data,'hrv');var results=[];
+  ALL_TAGS.forEach(function(tag){
+    var withTag=[];
+    for(var i=1;i<data.length;i++){var e=entries[data[i-1].date];if(e&&e.tags&&e.tags.indexOf(tag)>-1)withTag.push(data[i].hrv);}
+    if(withTag.length>=2){var tagAvg=withTag.reduce(function(s,v){return s+v;},0)/withTag.length;var delta=((tagAvg-baseHRV)/baseHRV*100);results.push({tag,avgHRV:Math.round(tagAvg*10)/10,count:withTag.length,delta:parseFloat(delta.toFixed(1))});}
+  });
+  return results.sort(function(a,b){return Math.abs(b.delta)-Math.abs(a.delta);});
+}
+
+// ═══════════════════════════════════════════
+// VOICE INPUT
+// ═══════════════════════════════════════════
+var recognition=null,voiceOn=false;
+function initVoice(){
+  var SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return false;
+  recognition=new SR();recognition.continuous=true;recognition.interimResults=true;recognition.lang='en-US';
+  recognition.onresult=function(ev){
+    var final='',interim='';
+    for(var i=ev.resultIndex;i<ev.results.length;i++){if(ev.results[i].isFinal)final+=ev.results[i][0].transcript;else interim+=ev.results[i][0].transcript;}
+    var ta=document.getElementById('jtext');if(!ta)return;
+    var base=ta.dataset.base||'';ta.value=base+final+interim;if(final)ta.dataset.base=base+final;
+  };
+  recognition.onend=function(){if(voiceOn)recognition.start();};
+  recognition.onerror=function(){stopVoice();};
+  return true;
+}
+function toggleVoice(){
+  if(voiceOn){stopVoice();return;}
+  if(!recognition&&!initVoice()){alert('Voice needs Chrome — try opening in Chrome for this feature.');return;}
+  var ta=document.getElementById('jtext');if(ta)ta.dataset.base=ta.value;
+  voiceOn=true;recognition.start();
+  var btn=document.getElementById('vbtn');if(btn){btn.className='voice-btn recording';btn.innerHTML='<div class="voice-pulse"></div> Listening...';}
+}
+function stopVoice(){
+  voiceOn=false;if(recognition)recognition.stop();
+  var ta=document.getElementById('jtext');if(ta)delete ta.dataset.base;
+  var btn=document.getElementById('vbtn');if(btn){btn.className='voice-btn';btn.innerHTML='🎤 Voice';}
+}
+
+// ═══════════════════════════════════════════
+// AI AUTO-TAG (Claude Haiku — fast + cheap)
+// ═══════════════════════════════════════════
+async function autoTagEntry(text,existingTags,structuredMeta){
+  // Read key fresh from input field in case S.apiKey wasn't set
+  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
+  if(!key||!text||text.length<10)return null;
+  var metaCtx='';
+  if(structuredMeta){
+    if(structuredMeta.meal_heaviness)metaCtx+='\nMeal heaviness logged: '+structuredMeta.meal_heaviness;
+    if(structuredMeta.dinner_time)metaCtx+='\nDinner time logged: '+structuredMeta.dinner_time;
+  }
+  var prompt='You are a health journal analyst for Avani. Extract structured data from her journal entry. Respond ONLY with valid JSON, no markdown, no preamble.\n\n'
+    +'Journal entry: "'+text+'"\n'
+    +(metaCtx?'Additional structured inputs:'+metaCtx+'\n':'')
+    +'\nExtract ALL of the following fields:\n'
+    +'{\n'
+    +'"summary": "1-2 sentences summarising what happened, how she felt, key observations",\n'
+    +'"mood": "positive|neutral|negative",\n'
+    +'"stress_signal": "low|moderate|high",\n'
+    +'"morning_quality": "slow|moderate|energised|not_mentioned",\n'
+    +'"meditated": true|false,\n'
+    +'"workout_quality": "great|good|average|poor|rest_day|not_mentioned",\n'
+    +'"foods_mentioned": ["list every food item mentioned, exact words used"],\n'
+    +'"symptoms": ["list any physical symptoms: hives, headache, bloating, fatigue, etc"],\n'
+    +'"hives_mentioned": true|false,\n'
+    +'"meal_timing_impression": "early|normal|late|not_mentioned",\n'
+    +'"suggested_tags": ["from: Morning walk,Evening walk,Meditation,Rest day,Light training,Intense training,Work stress,Social night,Late meal,Couldn\'t sleep,Low stress day,High stress,Travel"]\n'
+    +'}';
+  try{
+    var res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:500,messages:[{role:'user',content:prompt}]})
+    });
+    var d=await res.json();
+    if(d.error){console.error('Claude API error:',d.error.message);return null;}
+    var rawText=d.content&&d.content[0]&&d.content[0].text;
+    if(!rawText){console.error('Empty Claude response:',d);return null;}
+    // Strip markdown fences if present
+    var clean=rawText.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    var parsed=JSON.parse(clean);
+    return parsed;
+  }catch(e){
+    console.error('autoTagEntry failed:',e.message);
+    return null;
+  }
+}
+
+// ═══════════════════════════════════════════
+// SAVE JOURNAL
+// ═══════════════════════════════════════════
+async function saveJournal(){
+  stopVoice();
+  var ta=document.getElementById('jtext'),text=ta?ta.value.trim():'';
+  var date=S.an.today.date;
+
+  // Capture structured meal fields
+  var dinnerHour=S.dinnerTime;
+  var dinnerStr=formatDinnerTime(dinnerHour);
+  var structuredMeta={
+    meal_heaviness:S.mealHeaviness||null,
+    dinner_time:dinnerStr
+  };
+
+  // Save immediately
+  S.entries[date]={
+    text:text,
+    tags:[],
+    meal_heaviness:S.mealHeaviness,
+    dinner_hour:dinnerHour,
+    savedAt:Date.now(),
+    ai:null
+  };
+  persistEntries();S.rep=null;
+
+  var btn=document.getElementById('save-btn');
+  if(btn){btn.textContent='Saving...';btn.disabled=true;}
+
+  // Run AI extraction in background
+  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
+  if(text&&key){
+    var ai=await autoTagEntry(text,[],structuredMeta);
+    if(ai){
+      S.entries[date].ai=ai;
+      if(ai.suggested_tags)S.entries[date].tags=ai.suggested_tags.slice();
+      persistEntries();
+    }
+  }
+  if(btn){btn.textContent='✓ Saved';btn.disabled=true;}
+  setTimeout(function(){document.getElementById('tc-today').innerHTML=rToday();},1200);
+}
+
+function formatDinnerTime(h){
+  if(h==null)return'—';
+  var hr=Math.floor(h),mn=Math.round((h-hr)*60);
+  var ampm=hr>=12?'pm':'am';var hr12=hr>12?hr-12:hr;
+  return hr12+':'+(mn<10?'0':'')+mn+ampm;
+}
+function setMealHeaviness(val){S.mealHeaviness=val;document.querySelectorAll('.mh-btn').forEach(function(b){b.classList.toggle('sel',b.dataset.val===val);});}
+function setDinnerTime(val){S.dinnerTime=parseFloat(val);var el=document.getElementById('dinner-lbl');if(el)el.textContent=formatDinnerTime(S.dinnerTime);}
+function toggleChip(el){el.classList.toggle('sel');}
+function toggleDiary(date){
+  S.expandedDiary=S.expandedDiary===date?null:date;
+  document.getElementById('tc-journal').innerHTML=rJournal();
+}
+
+// ═══════════════════════════════════════════
+// CLAUDE REPORT API
+// ═══════════════════════════════════════════
+async function callClaude(){
+  var key=S.apiKey||(document.getElementById('akey')?document.getElementById('akey').value.trim():'');
+  if(!key)return null;
+  var an=S.an,l7=an.data.slice(-7);
+  var aHRV=avg(l7,'hrv').toFixed(1),aRead=avg(l7,'readiness').toFixed(1),aSh=avg(l7,'sleep_hours').toFixed(1),aREM=avg(l7,'rem_hours').toFixed(1),aRHR=avg(l7,'rhr').toFixed(1);
+  var hrvSlope=linSlope(an.data.map(function(d){return d.hrv||0;}));
+  var journalCtx='';
+  l7.forEach(function(d){
+    var e=S.entries[d.date];if(!e)return;
+    journalCtx+='\n- '+d.date+': ';
+    if(e.ai&&e.ai.summary)journalCtx+=e.ai.summary;
+    else if(e.text)journalCtx+=e.text.slice(0,120);
+    if(e.ai&&e.ai.foods_mentioned&&e.ai.foods_mentioned.length)journalCtx+=' [foods: '+e.ai.foods_mentioned.join(', ')+']';
+    if(e.ai&&e.ai.hives_mentioned)journalCtx+=' [⚠ HIVES REPORTED]';
+    if(e.ai&&e.ai.symptoms&&e.ai.symptoms.length)journalCtx+=' [symptoms: '+e.ai.symptoms.join(', ')+']';
+    if(e.ai&&e.ai.morning_quality&&e.ai.morning_quality!=='not_mentioned')journalCtx+=' [morning: '+e.ai.morning_quality+']';
+    if(e.ai&&e.ai.workout_quality&&e.ai.workout_quality!=='not_mentioned')journalCtx+=' [workout feel: '+e.ai.workout_quality+']';
+    if(e.meal_heaviness)journalCtx+=' [meal: '+e.meal_heaviness+']';
+    if(e.dinner_hour)journalCtx+=' [dinner: '+formatDinnerTime(e.dinner_hour)+']';
+    if(d.workout)journalCtx+=' [workout pulled: '+d.workout.type+' '+d.workout.intensity+(d.workout.duration_min?' '+d.workout.duration_min+'min':'')+']';
+  });
+
+  // Hives pattern context
+  var hiveDates=Object.keys(S.entries).filter(function(d){return S.entries[d].ai&&S.entries[d].ai.hives_mentioned;});
+  var hivesCtx=hiveDates.length?'\nHIVES OCCURRENCES ('+hiveDates.length+' times): '+hiveDates.join(', ')+'. Foods on those days: '+hiveDates.map(function(d){var e=S.entries[d];return e.ai&&e.ai.foods_mentioned?e.ai.foods_mentioned.join('+'):'unknown';}).join(' | '):'';
+
+  var impact=computeImpact(an.data,S.entries);
+  var impactTxt=impact.slice(0,5).map(function(r){return r.tag+' → next-day HRV '+(r.delta>=0?'+':'')+r.delta+'% (n='+r.count+')';}).join('; ');
+  var prompt='You are a precise personal health analyst. Give deeply insightful analysis. Use specific numbers. Identify causal links. Do NOT give generic advice — be specific to this person\'s data.\n\n'
+    +'LAST 7 DAYS: HRV '+aHRV+'ms (prev '+an.p7h+'ms, '+an.trend+'), Readiness '+aRead+', Sleep '+aSh+'h, REM '+aREM+'h, RHR '+aRHR+'bpm\n'
+    +'STRESS: 7d avg load '+an.stressLast7+'/100 ('+an.stressTrend+' vs prior week)\n'
+    +(an.resilienceLevel?'RESILIENCE: '+an.resilienceLevel+'\n':'')
+    +'LONG-TERM HRV: '+(hrvSlope>0.02?'improving':hrvSlope<-0.02?'declining':'stable')+'\n'
+    +'ZONES: red<'+an.zones.red+'ms, green>'+an.zones.green+'ms\n'
+    +'PATTERNS: '+an.findings.map(function(f){return f.label+': '+f.text;}).join(' | ')+'\n'
+    +(impactTxt?'ACTIVITY CORRELATIONS: '+impactTxt+'\n':'')
+    +(hivesCtx?hivesCtx+'\n':'')
+    +(journalCtx?'SELF-REPORTED CONTEXT (last 7 days):'+journalCtx+'\n':'')
+    +'TODAY: HRV '+an.today.hrv+'ms ('+an.zone+' zone), Readiness '+an.today.readiness+(an.todayStress!=null?', Stress load '+an.todayStress+'/100':'')+'\n\n'
+    +'Respond ONLY with valid JSON (no markdown):\n'
+    +'{"headline":"2 sentences, specific numbers, key insight","drivers":["finding 1 with data","finding 2","finding 3","finding 4","finding 5"],"causal":["causal link 1","link 2","link 3"],"trajectory":"2 sentences on 30-90 day direction","next_week":["action 1","action 2","action 3","action 4"],"today":"1 sentence for today"}';
+  try{
+    var res=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1400,messages:[{role:'user',content:prompt}]})});
+    var d=await res.json();if(d.error)throw new Error(d.error.message);
+    var rawText=d.content&&d.content[0]&&d.content[0].text;
+    if(!rawText)throw new Error('Empty response');
+    var clean=rawText.replace(/^```json\s*/,'').replace(/^```\s*/,'').replace(/```\s*$/,'').trim();
+    return JSON.parse(clean);
+  }catch(e){console.error('Claude report:',e);return null;}
+}
+
+// ═══════════════════════════════════════════
+// SVG CHARTS
+// ═══════════════════════════════════════════
+function svgLine(data,key,w,h,color,refs){
+  var pts=data.filter(function(d){return d[key]!=null;});if(!pts.length)return'<svg viewBox="0 0 '+w+' '+h+'" style="width:100%"></svg>';
+  var vals=pts.map(function(d){return d[key];}),mn=Math.min.apply(null,vals)*0.95,mx=Math.max.apply(null,vals)*1.05,rng=mx-mn||1;
+  var path=pts.map(function(d,i){return(i===0?'M':'L')+(10+i/(pts.length-1||1)*(w-20)).toFixed(1)+' '+(h-14-(d[key]-mn)/rng*(h-24)).toFixed(1);}).join(' ');
+  var refSvg='';
+  if(refs)refs.forEach(function(r){var py=(h-14-(r.val-mn)/rng*(h-24)).toFixed(1);refSvg+='<line x1="10" y1="'+py+'" x2="'+(w-10)+'" y2="'+py+'" stroke="'+r.col+'" stroke-width="1" stroke-dasharray="4,3" opacity=".7"/><text x="'+(w-8)+'" y="'+(parseFloat(py)-3).toFixed(1)+'" text-anchor="end" font-size="8" fill="'+r.col+'" font-family="SF Mono,Monaco,monospace">'+r.val+'</text>';});
+  var xlbls='',step=Math.ceil(pts.length/6);
+  pts.forEach(function(d,i){if(i%step===0){var px=(10+i/(pts.length-1||1)*(w-20)).toFixed(1);xlbls+='<text x="'+px+'" y="'+(h-1)+'" text-anchor="middle" font-size="8" fill="#7A7870" font-family="SF Mono,Monaco,monospace">'+d.lbl+'</text>';}});
+  return'<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block;">'+refSvg+'<path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>'+xlbls+'</svg>';
+}
+function svgMini(vals,w,h,color){
+  if(vals.length<2)return'<svg viewBox="0 0 '+w+' '+h+'" style="width:'+w+'px;height:'+h+'px"></svg>';
+  var mn=Math.min.apply(null,vals)*0.95,mx=Math.max.apply(null,vals)*1.05,rng=mx-mn||1;
+  var path=vals.map(function(v,i){return(i===0?'M':'L')+(i/(vals.length-1)*w).toFixed(1)+' '+(h-(v-mn)/rng*h).toFixed(1);}).join(' ');
+  return'<svg viewBox="0 0 '+w+' '+h+'" style="width:'+w+'px;height:'+h+'px;display:block;"><path d="'+path+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>';
+}
+function svgBars(data,kv,kl,w,h,colFn){
+  var vals=data.map(function(d){return d[kv]||0;}),mx=Math.max.apply(null,vals)||1,bw=Math.floor((w-20)/data.length)-3,out='';
+  data.forEach(function(d,i){var bx=10+i*(bw+3),bh=Math.round((d[kv]||0)/mx*(h-28)),by=h-18-bh,fill=colFn?colFn(d):'#888780';out+='<rect x="'+bx+'" y="'+by+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+fill+'"/><text x="'+(bx+bw/2).toFixed(1)+'" y="'+(by-3)+'" text-anchor="middle" font-size="8" fill="#7A7870" font-family="SF Mono,Monaco,monospace">'+d[kv]+'</text><text x="'+(bx+bw/2).toFixed(1)+'" y="'+(h-3)+'" text-anchor="middle" font-size="8" fill="#7A7870" font-family="SF Mono,Monaco,monospace">'+d[kl]+'</text>';});
+  return'<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block;">'+out+'</svg>';
+}
+function svgSleep(data,w,h){
+  var sl=data.slice(-30),mx=Math.max.apply(null,sl.map(function(d){return(d.deep_hours||0)+(d.rem_hours||0)+(d.light_hours||0);}));
+  if(!mx)return'<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block;"></svg>';
+  var bw=Math.max(3,Math.floor((w-10)/sl.length)-2),out='';
+  sl.forEach(function(d,i){var bx=5+i*(bw+2),base=h-16,dh=Math.round((d.deep_hours||0)/mx*(h-20)),rh=Math.round((d.rem_hours||0)/mx*(h-20)),lh=Math.round((d.light_hours||0)/mx*(h-20));out+='<rect x="'+bx+'" y="'+(base-dh)+'" width="'+bw+'" height="'+dh+'" fill="#3B6D11" opacity=".8"/><rect x="'+bx+'" y="'+(base-dh-rh)+'" width="'+bw+'" height="'+rh+'" fill="#7F77DD" opacity=".8"/><rect x="'+bx+'" y="'+(base-dh-rh-lh)+'" width="'+bw+'" height="'+lh+'" fill="#D3D1C7" opacity=".7"/>';});
+  out+='<text x="5" y="'+(h-2)+'" font-size="8" fill="#7A7870" font-family="SF Mono,Monaco,monospace">'+sl[0].lbl+'</text><text x="'+(w-5)+'" y="'+(h-2)+'" text-anchor="end" font-size="8" fill="#7A7870" font-family="SF Mono,Monaco,monospace">'+sl[sl.length-1].lbl+'</text>';
+  return'<svg viewBox="0 0 '+w+' '+h+'" style="width:100%;display:block;">'+out+'</svg>';
+}
+
+// ═══════════════════════════════════════════
+// RENDER: TODAY
+// ═══════════════════════════════════════════
+function rToday(){
+  var an=S.an,today=an.today,zone=an.zone,zones=an.zones;
+  var zC,zL;
+  if(zone==='green'){zC='var(--green)';zL='var(--gl)';}
+  else if(zone==='yellow'){zC='var(--amber)';zL='var(--al)';}
+  else{zC='var(--red)';zL='var(--rl)';}
+  var pct=Math.min(95,Math.max(5,((today.hrv-zones.red+5)/(zones.peak-zones.red+10))*100));
+  var zLabel,zTitle,zEmoji;
+  if(zone==='green'){zLabel='GREEN — optimal';zTitle='Good recovery — ready to go';zEmoji='💚';}
+  else if(zone==='yellow'){zLabel='YELLOW — moderate';zTitle='Moderate recovery — take it steady';zEmoji='💛';}
+  else{zLabel='RED — recover';zTitle='Low recovery — prioritise rest';zEmoji='🔴';}
+  var tC=an.trend==='declining'?'var(--amber)':an.trend==='improving'?'var(--green)':'var(--muted)';
+  var actions=zone==='green'
+    ?['Green zone — train normally or push harder today.','Target bed by 10:30pm to sustain HRV above '+zones.green+'ms.','5 min slow breathing before sleep (4-6 count) locks in recovery.']
+    :zone==='yellow'
+    ?['HRV at '+today.hrv+'ms — keep training light to medium.','Aim for bed by 10:30pm — your data shows this is your HRV sweet spot.','Check caffeine timing — it can suppress HRV within hours.']
+    :['HRV at '+today.hrv+'ms — red zone. Rest, walk, or easy movement only.','Bed before 10:30pm — no screens after 10pm if possible.','10 min slow breathing (4-6 count) — directly lifts overnight HRV.'];
+  if(an.trend==='declining')actions.push('⚠ 7-day HRV declining ('+an.l7h+'ms). If it drops below '+zones.red+'ms, take a full rest day.');
+
+  var existing=S.entries[today.date]||{};
+  var saved=!!existing.savedAt;
+
+  // Stress colour
+  var stressVal=an.todayStress,stressC='var(--green)',stressLbl='Low';
+  if(stressVal!=null){if(stressVal>60){stressC='var(--red)';stressLbl='High';}else if(stressVal>35){stressC='var(--amber)';stressLbl='Moderate';}}
+
+  // Yesterday's workout (pulled from Oura)
+  var prevDate=an.data.length>1?an.data[an.data.length-2]:null;
+  var workout=prevDate?prevDate.workout:null;
+
+  // Build reactive prompt based on today's data
+  var prev7=an.data.slice(-8,-1);
+  var hrvD=today.hrv-avg(prev7,'hrv');
+  var readD=today.readiness-avg(prev7,'readiness');
+  var sleepD=today.sleep_hours-avg(prev7,'sleep_hours');
+  var reactivePrompt='',reactiveType='neutral';
+  var parts=[];
+  if(Math.abs(hrvD)>=3)parts.push('HRV is '+(hrvD>0?'up ↑':'down ↓')+Math.round(Math.abs(hrvD))+'ms vs your recent average');
+  if(Math.abs(readD)>=7)parts.push('readiness '+(readD>0?'up '+Math.round(readD):Math.round(readD))+' pts');
+  if(sleepD<=-0.75)parts.push('you slept '+Math.abs(sleepD).toFixed(1)+'h less than usual');
+  if(workout)parts.push('you had a '+workout.intensity+' '+workout.type.replace(/_/g,' ')+(workout.duration_min?' ('+workout.duration_min+' min)':'')+' yesterday');
+  if(parts.length){
+    reactivePrompt=parts.join(' · ')+'. What else happened yesterday?';
+    reactiveType=hrvD<-3||readD<-7?'warn':hrvD>=3?'good':'neutral';
+  }
+
+  var h='<div class="wrap">';
+  // Header
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">'
+    +'<div class="mono" style="font-size:11px;color:var(--muted);">'+(today.date?fmtDate(today.date):'TODAY')+'</div>'
+    +'<div style="font-size:11px;color:var(--muted);background:var(--surface);border:1px solid var(--border);border-radius:20px;padding:3px 9px;">'+an.sum.days+' days tracked</div>'
+    +'</div>';
+
+  // 4 metric tiles (added RHR)
+  h+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;">'
+    +'<div class="tile"><div class="tile-lbl">HRV</div><div class="tile-val" style="font-size:17px;color:'+zC+';">'+today.hrv+'ms</div><div class="tile-sub" style="color:'+tC+'">7d '+an.l7h+'ms</div></div>'
+    +'<div class="tile"><div class="tile-lbl">Ready</div><div class="tile-val" style="font-size:17px;">'+today.readiness+'</div><div class="tile-sub">avg '+an.sum.avgR+'</div></div>'
+    +'<div class="tile"><div class="tile-lbl">Sleep</div><div class="tile-val" style="font-size:17px;">'+today.sleep_hours.toFixed(1)+'h</div><div class="tile-sub">REM '+today.rem_hours.toFixed(1)+'h</div></div>'
+    +'<div class="tile"><div class="tile-lbl">RHR</div><div class="tile-val" style="font-size:17px;">'+(today.rhr?Math.round(today.rhr):'—')+'</div><div class="tile-sub">avg '+an.sum.avgRHR+'</div></div>'
+    +'</div>';
+
+  // HRV Zone bar
+  h+='<div class="zone-wrap"><div class="zone-row"><span style="font-size:12px;font-weight:500;">Recovery zone</span><span class="zone-pill mono" style="background:'+zL+';color:'+zC+';">'+zLabel+'</span></div>'
+    +'<div class="zone-track"><div class="zone-thumb" style="left:'+pct.toFixed(1)+'%;background:'+zC+';"></div></div>'
+    +'<div class="zone-lbls"><span style="color:var(--red);">red &lt;'+zones.red+'</span><span style="color:var(--amber);">'+zones.red+'–'+zones.green+'</span><span style="color:var(--green);">green &gt;'+zones.green+'</span></div>';
+  if(stressVal!=null){
+    var sPct=Math.min(95,Math.max(5,stressVal));
+    h+='<div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);"><div class="zone-row" style="margin-bottom:8px;"><span style="font-size:11px;color:var(--muted);">Stress load</span><span class="zone-pill mono" style="background:'+zL+';color:'+stressC+';">'+stressLbl+' — '+stressVal+'/100</span></div>'
+      +'<div class="stress-bar-wrap"><div class="stress-thumb" style="left:'+sPct+'%;background:'+stressC+';"></div></div>'
+      +'<div class="zone-lbls"><span style="color:var(--green);">low</span><span style="color:var(--amber);">moderate</span><span style="color:var(--red);">high</span></div></div>';
+  }
+  h+='</div>';
+
+  // Action card
+  h+='<div class="card"><div class="card-hdr"><div style="width:36px;height:36px;border-radius:9px;background:'+zL+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;">'+zEmoji+'</div>'
+    +'<div><div style="font-size:13px;font-weight:500;">'+zTitle+'</div><div style="font-size:11px;color:var(--muted);margin-top:1px;">Based on your personal HRV baseline</div></div></div>'
+    +'<div style="padding:10px 14px;">';
+  actions.forEach(function(a){h+='<div class="act-item"><div class="dot6" style="background:'+zC+';"></div><div>'+esc(a)+'</div></div>';});
+  h+='</div></div>';
+
+  // ── WORKOUT PILL (auto-pulled from Oura) ──
+  if(workout){
+    var wEmoji=workout.intensity==='hard'?'🔥':workout.intensity==='easy'?'🚶':'💪';
+    var wC=workout.intensity==='hard'?'var(--red)':workout.intensity==='easy'?'var(--green)':'var(--amber)';
+    var wL=workout.intensity==='hard'?'var(--rl)':workout.intensity==='easy'?'var(--gl)':'var(--al)';
+    h+='<div style="background:'+wL+';border:1px solid var(--border);border-radius:10px;padding:10px 14px;margin-bottom:12px;display:flex;align-items:center;gap:10px;">'
+      +'<span style="font-size:18px;">'+wEmoji+'</span>'
+      +'<div><div style="font-size:12px;font-weight:500;color:'+wC+';">'+workout.type.replace(/_/g,' ').replace(/\b\w/g,function(l){return l.toUpperCase();})+(workout.duration_min?' · '+workout.duration_min+' min':'')+' · '+workout.intensity+'</div>'
+      +'<div style="font-size:10px;color:var(--muted);margin-top:1px;">Yesterday · pulled from Oura'+(workout.avg_hr?' · avg HR '+Math.round(workout.avg_hr)+'bpm':'')+' · logged via Apple Watch</div></div>'
+      +'</div>';
+  }
+
+  // ── CHECK-IN ──
+  h+='<div class="card card-body">';
+  h+='<div style="font-size:13px;font-weight:500;margin-bottom:4px;">Daily check-in</div>';
+  h+='<div style="font-size:11px;color:var(--muted);margin-bottom:12px;">Tell pulse/ about yesterday — gym, meals, how you felt, anything unusual</div>';
+
+  // Reactive prompt (data-aware, not generic)
+  if(reactivePrompt){
+    var rpBg=reactiveType==='warn'?'var(--al)':reactiveType==='good'?'var(--gl)':'var(--bg)';
+    var rpBd=reactiveType==='warn'?'var(--amber)':reactiveType==='good'?'var(--green)':'var(--border)';
+    h+='<div style="background:'+rpBg+';border:1px solid '+rpBd+';border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px;line-height:1.5;color:var(--text);">'+esc(reactivePrompt)+'</div>';
+  }
+
+  // Free text — PRIMARY input
+  var placeholder='How was your morning? How did training go? What did you eat? Any symptoms like hives? How\'s your stress today?...';
+  h+='<textarea id="jtext" class="journal-area" rows="5" placeholder="'+placeholder+'">'+esc(existing.text||'')+'</textarea>';
+  h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;margin-bottom:14px;">'
+    +'<button id="vbtn" class="voice-btn" onclick="toggleVoice()">🎤 Voice</button>'
+    +'<span style="font-size:10px;color:var(--muted);">Speak or type — AI extracts everything</span>'
+    +'</div>';
+
+  // ── MEAL INPUTS (structured, secondary) ──
+  h+='<div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:14px;">';
+  h+='<div class="sec-lbl" style="margin-bottom:8px;">Meals — optional, 2 taps</div>';
+
+  // Meal heaviness toggle
+  var mh=existing.meal_heaviness||S.mealHeaviness;
+  h+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);">'
+    +'<div style="font-size:12px;color:var(--muted);">Meal heaviness</div>'
+    +'<div style="display:flex;gap:4px;">';
+  ['light','normal','heavy'].forEach(function(v){
+    var sel=mh===v;
+    h+='<button class="mh-btn'+(sel?' sel':'')+'" data-val="'+v+'" onclick="setMealHeaviness(\''+v+'\')" style="font-size:11px;padding:5px 10px;border-radius:20px;border:1px solid var(--border);background:'+(sel?'var(--text)':'transparent')+';color:'+(sel?'#fff':'var(--muted)')+';">'+v.charAt(0).toUpperCase()+v.slice(1)+'</button>';
+  });
+  h+='</div></div>';
+
+  // Dinner time slider
+  var dh=existing.dinner_hour!=null?existing.dinner_hour:S.dinnerTime;
+  var sliderPct=((dh-18)/(23.5-18)*100).toFixed(1);
+  h+='<div style="padding:10px 0;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">'
+    +'<div style="font-size:12px;color:var(--muted);">Dinner time</div>'
+    +'<div id="dinner-lbl" style="font-size:12px;font-weight:500;">'+formatDinnerTime(dh)+'</div>'
+    +'</div>'
+    +'<input type="range" min="18" max="23.5" step="0.25" value="'+dh+'" oninput="setDinnerTime(this.value)" style="width:100%;accent-color:var(--text);">'
+    +'<div style="display:flex;justify-content:space-between;font-size:10px;color:var(--muted);margin-top:2px;"><span>6pm</span><span>11:30pm</span></div>'
+    +'</div>';
+  h+='</div>';
+
+  if(S.apiKey)h+='<div style="font-size:10px;color:var(--purple);margin-bottom:10px;">✦ AI extracts foods · symptoms · workout quality · mood · morning · stress from your text</div>';
+
+  h+='<button id="save-btn" class="save-btn" onclick="saveJournal()">'+(saved?'✓ Update entry':'Save check-in')+'</button>';
+  h+='</div>'; // end check-in card
+
+  // ── RECENT ENTRIES PREVIEW ──
+  var recentDates=Object.keys(S.entries).sort().reverse().slice(0,3);
+  var totalEntries=Object.keys(S.entries).length;
+  if(recentDates.length){
+    h+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:12px;">';
+    h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">'
+      +'<div class="sec-lbl" style="margin-bottom:0;">Recent entries</div>'
+      +'<button onclick="goTab(\'journal\')" style="font-size:11px;color:var(--text);font-weight:500;padding:4px 10px;border:1px solid var(--border);border-radius:20px;">View all '+totalEntries+' →</button>'
+      +'</div>';
+    recentDates.forEach(function(date){
+      var e=S.entries[date];
+      var moodColor=e.ai&&e.ai.mood==='positive'?'#2D6A4F':e.ai&&e.ai.mood==='negative'?'#B5303A':'#C8A96A';
+      h+='<div style="padding:8px 0;border-top:1px solid var(--border);">';
+      h+='<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">'
+        +'<div class="diary-date">'+(e.ai&&e.ai.mood?'<span class="mood-dot" style="background:'+moodColor+'"></span>':'')+fmtDate(date)+'</div>'
+        +'<div style="display:flex;gap:8px;align-items:center;">';
+      if(e.ai&&e.ai.hives_mentioned)h+='<span style="font-size:10px;color:var(--red);">⚠ hives</span>';
+      if(e.ai&&e.ai.stress_signal&&e.ai.stress_signal!=='low'){var sc2=e.ai.stress_signal==='high'?'var(--red)':'var(--amber)';h+='<span style="font-size:10px;color:'+sc2+';">⚡ '+e.ai.stress_signal+'</span>';}
+      h+='</div></div>';
+      if(e.ai&&e.ai.summary)h+='<div style="font-size:12px;line-height:1.4;color:var(--text);">'+esc(e.ai.summary)+'</div>';
+      else if(e.text)h+='<div style="font-size:12px;color:var(--muted);line-height:1.4;">'+esc(e.text.slice(0,100))+(e.text.length>100?'…':'')+'</div>';
+      // Show foods + symptoms pills if extracted
+      var pills=[];
+      if(e.ai&&e.ai.foods_mentioned&&e.ai.foods_mentioned.length)e.ai.foods_mentioned.slice(0,3).forEach(function(f){pills.push({t:f,c:'var(--muted)',bg:'var(--bg)'});});
+      if(e.ai&&e.ai.symptoms&&e.ai.symptoms.length)e.ai.symptoms.forEach(function(s){pills.push({t:s,c:'var(--red)',bg:'var(--rl)'});});
+      if(e.meal_heaviness)pills.push({t:e.meal_heaviness+' meal',c:'var(--muted)',bg:'var(--bg)'});
+      if(pills.length){
+        h+='<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:5px;">';
+        pills.slice(0,5).forEach(function(p){h+='<span style="font-size:10px;padding:1px 7px;border-radius:10px;background:'+p.bg+';border:1px solid var(--border);color:'+p.c+';">'+esc(p.t)+'</span>';});
+        h+='</div>';
+      }
+      h+='</div>';
+    });
+    h+='</div>';
+  }
+
+  h+='</div>';return h;
+}
+
+// ═══════════════════════════════════════════
+// RENDER: REPORT
+// ═══════════════════════════════════════════
+function rReport(){
+  var an=S.an,l7=an.data.slice(-7);
+  var aHRV=avg(l7,'hrv').toFixed(1),aRead=avg(l7,'readiness').toFixed(1),aSh=avg(l7,'sleep_hours').toFixed(1);
+  var r=S.rep,noKey=!S.apiKey;
+  var headline=r?r.headline:S.repLoading?'Analysing data + journal context...':noKey?'Add your Claude API key on the connect screen to unlock AI insights.':'Tap Report to generate your personalised weekly analysis.';
+  var drivers=r?r.drivers:an.findings.map(function(f){return f.text;});
+  var causal=r?r.causal:[];var trajectory=r?r.trajectory:null;var nextWeek=r?r.next_week:[];
+  var h='<div class="wrap">';
+  h+='<div class="hero"><div class="hero-lbl">LAST 7 DAYS</div><div class="hero-hl">'+esc(headline)+'</div><div class="hero-stats"><div><div class="hsv">'+aHRV+'ms</div><div class="hsl">Avg HRV</div></div><div><div class="hsv">'+aRead+'</div><div class="hsl">Readiness</div></div><div><div class="hsv">'+aSh+'h</div><div class="hsl">Sleep</div></div><div><div class="hsv">'+an.stressLast7+'</div><div class="hsl">Stress load</div></div></div></div>';
+  h+='<div class="card card-body" style="margin-bottom:10px;"><div class="sec-lbl">What drove this week</div>';
+  if(S.repLoading&&!r){h+='<div style="font-size:12px;color:var(--muted);padding:8px 0;">Pulling in Oura data and journal context...</div>';}
+  else{drivers.forEach(function(d,i){var f=an.findings[i],dc=f&&f.type==='good'?'var(--green)':f&&f.type==='warn'?'var(--amber)':'var(--muted)';h+='<div class="find-row"><div class="dot6" style="background:'+dc+';margin-top:5px;flex-shrink:0;"></div><div>'+esc(d)+'</div></div>';});}
+  h+='</div>';
+  if(causal&&causal.length){h+='<div class="card card-body" style="margin-bottom:10px;"><div class="sec-lbl">What\'s causing what</div>';causal.forEach(function(c){h+='<div class="causal-item"><div class="causal-lbl">→ Causal link</div>'+esc(c)+'</div>';});h+='</div>';}
+  if(trajectory){h+='<div style="background:var(--bg);border:1px solid var(--border);border-radius:14px;padding:14px 16px;margin-bottom:10px;"><div class="sec-lbl">Where you\'re heading</div><div style="font-size:12px;line-height:1.6;">'+esc(trajectory)+'</div></div>';}
+  if(nextWeek.length){h+='<div class="green-card"><div class="sec-lbl" style="color:var(--green);">This week\'s priorities</div>';nextWeek.forEach(function(item,j){h+='<div class="next-item"><div class="next-num">'+pad2(j+1)+'</div><div>'+esc(item)+'</div></div>';});h+='</div>';}
+  h+='<div class="card card-body"><div class="sec-lbl">'+an.sum.days+'-day averages</div><div class="stat-grid">';
+  [[an.sum.avgH+'ms','Avg HRV'],[String(an.sum.avgR),'Avg readiness'],[String(an.sum.avgS),'Avg sleep score'],[an.sum.avgRHR+'bpm','Avg RHR'],[an.sum.avgSh+'h','Avg sleep'],[an.sum.avgREM+'h','Avg REM']].forEach(function(s){h+='<div class="stat-block"><div class="stat-block-lbl">'+s[1]+'</div><div class="stat-block-val">'+s[0]+'</div></div>';});
+  h+='</div></div></div>';return h;
+}
+
+// ═══════════════════════════════════════════
+// RENDER: TRENDS  (4 clean tabs)
+// ═══════════════════════════════════════════
+function rTrends(){
+  var an=S.an,t=S.trendsTab;
+  var tabs=[['recovery','Recovery'],['sleep','Sleep'],['stress','Stress'],['activity','Activity']];
+  var tabHtml=tabs.map(function(td){return'<button class="ttab'+(t===td[0]?' active':'')+'" onclick="setTT(\''+td[0]+'\')">'+td[1]+'</button>';}).join('');
+  var body='';
+
+  if(t==='recovery'){
+    // --- RECOVERY TAB: HRV + trajectory ---
+    var r7=an.rolling.filter(function(d){return d.hrv_7d!=null;}),refs=[{val:an.zones.green,col:'#2D6A4F'},{val:an.zones.red,col:'#B5303A'}];
+    body+='<div class="card card-body" style="margin-bottom:10px;">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--gl);">📈</div><div><div style="font-size:13px;font-weight:500;">HRV Trend</div><div style="font-size:11px;color:var(--muted);">7-day rolling average · personal zones</div></div></div>';
+    body+='<div class="chart-wrap">'+svgLine(r7,'hrv_7d',440,140,'#1A1915',refs)+'</div>';
+    body+='<div style="display:flex;gap:14px;font-size:10px;font-family:SF Mono,Monaco,monospace;margin-top:6px;"><span style="color:var(--green);">— green &gt;'+an.zones.green+'ms</span><span style="color:var(--red);">— red &lt;'+an.zones.red+'ms</span></div>';
+    body+='</div>';
+
+    // Long-term markers
+    var data=an.data,last30=data.slice(-30),prev30=data.slice(-60,-30);
+    function mSlope(key,higher){var vals=data.slice(-60).map(function(d){return parseFloat(d[key])||0;});var s=linSlope(vals);return s>(higher?0.02:-0.02)?'improving':s<(higher?-0.02:0.02)?'declining':'stable';}
+    function mDelta(key){if(prev30.length<5)return null;var l=avg(last30,key),p=avg(prev30,key);if(!p)return null;return((l-p)/p*100);}
+
+    body+='<div class="card card-body">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--gl);">🎯</div><div><div style="font-size:13px;font-weight:500;">Long-term trajectory</div><div style="font-size:11px;color:var(--muted);">60-day trend · 30-day avg</div></div></div>';
+
+    [
+      {key:'hrv',label:'HRV',unit:'ms',higher:true,val:Math.round(avg(last30,'hrv')),interp:{improving:'Trending up — improving fitness and lower chronic stress.',declining:'Declining for 60 days. Reduce training load and protect sleep.',stable:'Holding steady. Maintain current balance.'}},
+      {key:'rhr',label:'Resting HR',unit:'bpm',higher:false,val:avg(last30,'rhr').toFixed(1),interp:{improving:'Declining — a sign of improving cardiovascular fitness.',declining:'Creeping up. Signals fatigue, illness, or reduced aerobic activity.',stable:'Stable. Zone 2 cardio can push this lower over time.'}},
+      {key:'respiratory_rate',label:'Resp. Rate',unit:'br/min',higher:false,val:avg(last30,'respiratory_rate').toFixed(1),interp:{improving:'Improving — real aerobic adaptation happening.',declining:'Increasing. May signal overtraining or reduced fitness.',stable:'Stable. Aerobic work is the most effective lever here.'}}
+    ].forEach(function(m){
+      var tr=mSlope(m.key,m.higher),delta=mDelta(m.key),isGood=tr==='improving',isBad=tr==='declining';
+      var ac=isGood?'var(--green)':isBad?'var(--red)':'var(--muted)';var arrow=isGood?'↗':isBad?'↘':'→';
+      var mini=last30.map(function(d){return parseFloat(d[m.key])||0;}).filter(Boolean);
+      body+='<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);">';
+      body+='<div style="flex:1;"><div style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">'+m.label+'</div>';
+      body+='<div style="font-size:18px;font-weight:300;line-height:1.2;">'+m.val+'<span style="font-size:10px;color:var(--muted);"> '+m.unit+'</span></div>';
+      if(delta!=null){var dStr=(delta>=0?'+':'')+delta.toFixed(1)+'%',dC=(m.higher&&delta>=0)||(!m.higher&&delta<=0)?'var(--green)':'var(--red)';body+='<div style="font-size:10px;color:'+dC+';">'+dStr+' vs prev 30d</div>';}
+      body+='</div><div style="flex:1;display:flex;align-items:center;justify-content:center;">'+svgMini(mini,80,28,isGood?'#2D6A4F':isBad?'#B5303A':'#888780')+'</div>';
+      body+='<div style="text-align:right;flex-shrink:0;"><div style="font-size:22px;color:'+ac+';line-height:1;">'+arrow+'</div><div style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:'+ac+';">'+tr+'</div></div></div>';
+      body+='<div style="font-size:11px;color:var(--muted);line-height:1.4;padding:4px 0 10px;">'+m.interp[tr]+'</div>';
+    });
+    body+='</div>';
+
+  } else if(t==='sleep'){
+    // --- SLEEP TAB ---
+    body+='<div class="card card-body" style="margin-bottom:10px;">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--pl);">😴</div><div><div style="font-size:13px;font-weight:500;">Sleep stages</div><div style="font-size:11px;color:var(--muted);">Last 30 nights · avg '+an.sum.avgDeep+'h deep, '+an.sum.avgREM+'h REM</div></div></div>';
+    body+='<div class="chart-wrap">'+svgSleep(an.rolling,440,180)+'</div>';
+    body+='<div style="display:flex;gap:14px;font-size:10px;font-family:SF Mono,Monaco,monospace;margin-top:8px;"><span style="color:#3B6D11;">■ Deep</span><span style="color:#7F77DD;">■ REM</span><span style="color:#888780;">■ Light</span></div>';
+    body+='</div>';
+
+    // Sleep long-term
+    var data2=an.data,last30s=data2.slice(-30),prev30s=data2.slice(-60,-30);
+    [
+      {key:'deep_hours',label:'Deep Sleep',unit:'h',higher:true,val:avg(last30s,'deep_hours').toFixed(1)},
+      {key:'rem_hours',label:'REM Sleep',unit:'h',higher:true,val:avg(last30s,'rem_hours').toFixed(1)},
+      {key:'sleep_score',label:'Sleep Quality',unit:'',higher:true,val:Math.round(avg(last30s,'sleep_score'))}
+    ].forEach(function(m){
+      var vals2=data2.slice(-60).map(function(d){return parseFloat(d[m.key])||0;});
+      var s=linSlope(vals2),tr=s>0.02?'improving':s<-0.02?'declining':'stable';
+      var delta2=prev30s.length>=5?((avg(last30s,m.key)-avg(prev30s,m.key))/(avg(prev30s,m.key)||1)*100):null;
+      var isGood=tr==='improving',isBad=tr==='declining',ac=isGood?'var(--green)':isBad?'var(--red)':'var(--muted)';
+      var interp={improving:'Improving — this has the biggest downstream effect on HRV and daytime performance.',declining:'Declining. Check: alcohol, late meals, screen exposure, bedtime consistency.',stable:'Stable. Consistent bedtimes and evening routine are the highest-leverage habits here.'};
+      body+='<div class="card card-body" style="margin-bottom:10px;">';
+      body+='<div style="display:flex;justify-content:space-between;align-items:flex-start;">';
+      body+='<div><div style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;">'+m.label+'</div><div style="font-size:22px;font-weight:300;">'+m.val+' '+m.unit+'</div>'+(delta2!=null?'<div style="font-size:10px;color:'+((delta2>=0)?'var(--green)':'var(--red)')+';">'+(delta2>=0?'+':'')+delta2.toFixed(1)+'% vs prev 30d</div>':'')+'</div>';
+      body+='<div style="font-size:22px;color:'+ac+';">'+( isGood?'↗':isBad?'↘':'→')+'</div></div>';
+      body+='<div style="font-size:11px;color:var(--muted);line-height:1.4;margin-top:8px;">'+interp[tr]+'</div>';
+      body+='</div>';
+    });
+
+    // Bedtime pattern
+    var validBed=an.bedtime.filter(function(b){return b.count>0;}),maxBH=validBed.length?Math.max.apply(null,validBed.map(function(b){return b.hrv;})):1,bestLbl=validBed.slice().sort(function(a,b){return b.hrv-a.hrv;})[0];
+    body+='<div class="card card-body">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--pl);">🌙</div><div><div style="font-size:13px;font-weight:500;">Bedtime vs HRV</div><div style="font-size:11px;color:var(--muted);">Your optimal sleep window</div></div></div>';
+    body+='<div class="chart-wrap">'+svgBars(validBed,'hrv','label',440,160,function(d){return d.hrv===maxBH?'#2D6A4F':'#888780';})+'</div>';
+    body+='<div style="margin-top:10px;font-size:12px;color:var(--muted);">Best window: '+(bestLbl?bestLbl.label:'—')+' → highest avg HRV of '+( bestLbl?bestLbl.hrv:'—')+'ms</div>';
+    body+='</div>';
+
+  } else if(t==='stress'){
+    // --- STRESS TAB ---
+    var stressData=an.rolling.filter(function(d){return d.stress_load!=null;});
+
+    body+='<div class="card card-body" style="margin-bottom:10px;">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--rl);">⚡</div><div><div style="font-size:13px;font-weight:500;">Stress & Resilience</div><div style="font-size:11px;color:var(--muted);">7d avg: '+an.stressLast7+'/100 · '+an.stressTrend+' vs prior week</div></div></div>';
+
+    // Summary row
+    var stressC=an.stressLast7>60?'var(--red)':an.stressLast7>35?'var(--amber)':'var(--green)';
+    var stressLbl2=an.stressLast7>60?'High stress period':an.stressLast7>35?'Moderate stress':'Well recovered';
+    h='';
+    body+='<div style="display:flex;gap:8px;margin-bottom:14px;">';
+    body+='<div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 12px;"><div class="sec-lbl">This week</div><div style="font-size:22px;font-weight:300;color:'+stressC+';">'+an.stressLast7+'<span style="font-size:11px;color:var(--muted);font-weight:400;">/100</span></div><div style="font-size:10px;color:'+stressC+';">'+stressLbl2+'</div></div>';
+    body+='<div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 12px;"><div class="sec-lbl">Trend</div><div style="font-size:22px;font-weight:300;color:'+(an.stressTrend==='improving'?'var(--green)':an.stressTrend==='worsening'?'var(--red)':'var(--muted)')+';">'+(an.stressTrend==='improving'?'↓':an.stressTrend==='worsening'?'↑':'→')+'</div><div style="font-size:10px;color:var(--muted);">'+an.stressTrend+' vs last week</div></div>';
+    if(an.resilienceLevel){body+='<div style="flex:1;background:var(--bg);border-radius:10px;padding:10px 12px;"><div class="sec-lbl">Resilience</div><div style="font-size:16px;font-weight:400;">'+an.resilienceLevel+'</div><div style="font-size:10px;color:var(--muted);">Oura score</div></div>';}
+    body+='</div>';
+
+    // Stress load line chart
+    if(stressData.length>5){
+      body+='<div class="chart-wrap" style="margin-bottom:8px;">'+svgLine(stressData,'stress_load',440,120,'#B5303A',null)+'</div>';
+      body+='<div style="font-size:11px;color:var(--muted);">Stress load (0=low, 100=high). Derived from HRV + readiness deficit.</div>';
+    }
+    body+='</div>';
+
+    // Day of week stress pattern
+    var validDow=an.dowPat.filter(function(d){return d.count>0;});
+    var maxStress=validDow.length?Math.max.apply(null,validDow.map(function(d){return d.stress;})):1;
+    body+='<div class="card card-body" style="margin-bottom:10px;">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--rl);">📅</div><div><div style="font-size:13px;font-weight:500;">Stress by day of week</div><div style="font-size:11px;color:var(--muted);">Average stress load per day</div></div></div>';
+    an.dowPat.forEach(function(dp){
+      var isHigh=dp.count>0&&dp.stress===maxStress;
+      var fill=isHigh?'var(--red)':'var(--amber)';
+      var barPct=dp.count>0?(dp.stress/Math.max(maxStress,1)*100).toFixed(0):'0';
+      body+='<div class="dow-row"><div class="dow-lbl">'+dp.day+'</div><div class="dow-track"><div class="dow-fill" style="width:'+barPct+'%;background:'+fill+';"></div></div><div style="font-size:11px;font-family:SF Mono,Monaco,monospace;width:36px;text-align:right;color:'+fill+';">'+(dp.count>0?dp.stress:'—')+'</div><div style="font-size:10px;color:var(--muted);width:55px;text-align:right;">'+(dp.count>0?'HRV '+dp.hrv:'')+'</div></div>';
+    });
+    body+='</div>';
+
+    // Journal-based stress correlations
+    var impact=computeImpact(an.data,S.entries);
+    var stressors=impact.filter(function(r){return r.delta<0;}).slice(0,5);
+    var relievers=impact.filter(function(r){return r.delta>0;}).slice(0,5);
+    if(stressors.length||relievers.length){
+      body+='<div class="card card-body">';
+      body+='<div class="section-hdr"><div class="section-icon" style="background:var(--al);">🔍</div><div><div style="font-size:13px;font-weight:500;">What affects your stress</div><div style="font-size:11px;color:var(--muted);">From your journal · effect on next-day HRV</div></div></div>';
+      if(relievers.length){
+        body+='<div style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--green);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px;">Stress reducers</div>';
+        relievers.forEach(function(r){var bw=Math.round(Math.abs(r.delta)/20*100);body+='<div class="impact-row" style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;"><div style="flex:1;font-size:12px;">'+esc(r.tag)+'</div><div style="width:70px;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0;"><div style="height:100%;border-radius:3px;background:var(--green);width:'+Math.min(100,bw)+'%;"></div></div><div style="font-size:11px;font-family:SF Mono,Monaco,monospace;color:var(--green);width:40px;text-align:right;">+'+r.delta+'%</div><div style="font-size:10px;color:var(--muted);width:30px;text-align:right;">n='+r.count+'</div></div>';});
+      }
+      if(stressors.length){
+        body+='<div style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--red);text-transform:uppercase;letter-spacing:.05em;margin:10px 0 6px;">Stress triggers</div>';
+        stressors.forEach(function(r){var bw=Math.round(Math.abs(r.delta)/20*100);body+='<div style="display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);"><div style="flex:1;font-size:12px;">'+esc(r.tag)+'</div><div style="width:70px;height:5px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0;"><div style="height:100%;border-radius:3px;background:var(--red);width:'+Math.min(100,bw)+'%;"></div></div><div style="font-size:11px;font-family:SF Mono,Monaco,monospace;color:var(--red);width:40px;text-align:right;">'+r.delta+'%</div><div style="font-size:10px;color:var(--muted);width:30px;text-align:right;">n='+r.count+'</div></div>';});
+      }
+      if(!stressors.length&&!relievers.length){body+='<div style="font-size:12px;color:var(--muted);">Log check-ins for 2+ weeks to see what drives your stress.</div>';}
+      body+='</div>';
+    } else {
+      body+='<div class="card card-body"><div style="font-size:12px;color:var(--muted);line-height:1.6;">Log daily check-ins with activity tags and this section will show you exactly what drives and reduces your personal stress response — quantified from your own data.</div></div>';
+    }
+
+  } else if(t==='activity'){
+    // --- ACTIVITY TAB ---
+    var valid3=an.dowPat.filter(function(d){return d.count>0;}),maxH3=valid3.length?Math.max.apply(null,valid3.map(function(d){return d.hrv;})):1,minH3=valid3.length?Math.min.apply(null,valid3.map(function(d){return d.hrv;})):0;
+    body+='<div class="card card-body" style="margin-bottom:10px;">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--gl);">📅</div><div><div style="font-size:13px;font-weight:500;">HRV by day of week</div><div style="font-size:11px;color:var(--muted);">Your best and worst recovery days</div></div></div>';
+    an.dowPat.forEach(function(dp){var ib=dp.count>0&&dp.hrv===maxH3,iw=dp.count>0&&dp.hrv===minH3,fill=ib?'var(--green)':iw?'var(--red)':'var(--amber)',bp=dp.count>0?(dp.hrv/maxH3*100).toFixed(0):'0';body+='<div class="dow-row"><div class="dow-lbl">'+dp.day+'</div><div class="dow-track"><div class="dow-fill" style="width:'+bp+'%;background:'+fill+';"></div></div><div style="font-size:11px;font-family:SF Mono,Monaco,monospace;width:40px;text-align:right;color:'+fill+';">'+(dp.count>0?dp.hrv:'—')+'</div><div style="font-size:10px;color:var(--muted);width:55px;text-align:right;">'+(dp.count>0?'sleep '+dp.sleep:'')+'</div></div>';});
+    body+='</div>';
+
+    // Activity impact
+    var impact2=computeImpact(an.data,S.entries),baseHRV=an.sum.avgH;
+    body+='<div class="card card-body">';
+    body+='<div class="section-hdr"><div class="section-icon" style="background:var(--gl);">💡</div><div><div style="font-size:13px;font-weight:500;">Activity impact on HRV</div><div style="font-size:11px;color:var(--muted);">From your journal · vs '+baseHRV+'ms baseline</div></div></div>';
+    if(!impact2.length){body+='<div style="font-size:12px;color:var(--muted);line-height:1.5;">Log daily check-ins for a few weeks and this will show which activities actually move <em>your</em> HRV — evening walks, meditation, alcohol — quantified from your own data, not general health advice.</div><div style="margin-top:10px;padding:10px 12px;background:var(--gl);border-radius:10px;font-size:11px;color:var(--green);">→ Today tab → fill in check-in → repeat → results appear here</div>';}
+    else{var maxD2=Math.max.apply(null,impact2.map(function(r){return Math.abs(r.delta);}));impact2.forEach(function(r){var pos=r.delta>=0,bc=pos?'var(--green)':'var(--red)',bw=Math.round(Math.abs(r.delta)/Math.max(maxD2,1)*100);body+='<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);"><div style="flex:1;font-size:12px;">'+esc(r.tag)+'</div><div style="width:80px;height:6px;background:var(--bg);border-radius:3px;overflow:hidden;flex-shrink:0;"><div style="height:100%;border-radius:3px;background:'+bc+';width:'+bw+'%;"></div></div><div style="font-size:11px;font-family:SF Mono,Monaco,monospace;color:'+bc+';width:44px;text-align:right;">'+(r.delta>=0?'+':'')+r.delta+'%</div><div style="font-size:10px;color:var(--muted);width:36px;text-align:right;">n='+r.count+'</div></div>';});body+='<div style="margin-top:8px;font-size:10px;color:var(--muted);">% change in next-day HRV vs your '+baseHRV+'ms baseline. Min 2 observations per activity.</div>';}
+    body+='</div>';
+  }
+
+  return'<div class="wrap"><div class="ttabs">'+tabHtml+'</div>'+body+'</div>';
+}
+
+// ═══════════════════════════════════════════
+// RENDER: JOURNAL  (dedicated full view)
+// ═══════════════════════════════════════════
+function setJournalFilter(tag){
+  S.journalFilter=S.journalFilter===tag?null:tag;
+  document.getElementById('tc-journal').innerHTML=rJournal();
+}
+
+function rJournal(){
+  var allDates=Object.keys(S.entries).sort().reverse();
+  var filt=S.journalFilter;
+
+  // Collect all unique tags for filter bar
+  var allTags={};
+  allDates.forEach(function(d){var e=S.entries[d];if(e.tags)e.tags.forEach(function(t){allTags[t]=(allTags[t]||0)+1;});});
+  var sortedTags=Object.keys(allTags).sort(function(a,b){return allTags[b]-allTags[a];}).slice(0,12);
+
+  // Filter entries
+  var dates=filt?allDates.filter(function(d){var e=S.entries[d];return e.tags&&e.tags.indexOf(filt)>-1;}):allDates;
+
+  var h='<div class="wrap">';
+
+  // Header
+  h+='<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;">';
+  h+='<div><div style="font-size:17px;font-weight:500;">Journal</div><div style="font-size:11px;color:var(--muted);">'+allDates.length+' entries'+(filt?' · filtered by '+esc(filt):'')+' · stored locally</div></div>';
+  if(filt)h+='<button onclick="setJournalFilter(null)" style="font-size:11px;color:var(--muted);padding:4px 10px;border:1px solid var(--border);border-radius:20px;">✕ Clear</button>';
+  h+='</div>';
+
+  // Tag filter bar
+  if(sortedTags.length){
+    h+='<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px;">';
+    sortedTags.forEach(function(tag){
+      var active=filt===tag;
+      h+='<button onclick="setJournalFilter(\''+tag.replace(/'/g,"\\'")+'\')" style="font-size:11px;padding:4px 11px;border-radius:20px;border:1px solid '+(active?'var(--text)':'var(--border)')+';background:'+(active?'var(--text)':'transparent')+';color:'+(active?'#fff':'var(--muted)')+';">'+esc(tag)+' <span style="opacity:.6;">'+allTags[tag]+'</span></button>';
+    });
+    h+='</div>';
+  }
+
+  if(!allDates.length){
+    h+='<div style="text-align:center;padding:40px 20px;">';
+    h+='<div style="font-size:32px;margin-bottom:12px;">📓</div>';
+    h+='<div style="font-size:14px;font-weight:500;margin-bottom:8px;">No journal entries yet</div>';
+    h+='<div style="font-size:12px;color:var(--muted);line-height:1.6;">Go to Today → fill in the daily check-in → save. Your entries will appear here with AI summaries and tags.</div>';
+    h+='</div>';
+  } else if(!dates.length){
+    h+='<div style="font-size:13px;color:var(--muted);padding:20px 0;text-align:center;">No entries tagged "'+esc(filt)+'"</div>';
+  } else {
+    dates.forEach(function(date){
+      var e=S.entries[date];
+      var isExpanded=S.expandedDiary===date;
+      var moodColor=e.ai&&e.ai.mood==='positive'?'#2D6A4F':e.ai&&e.ai.mood==='negative'?'#B5303A':'#C8A96A';
+
+      // Find corresponding biometrics for this date
+      var bio=S.an?S.an.data.find(function(d){return d.date===date;}):null;
+
+      h+='<div class="diary-card">';
+
+      // Date + biometrics row
+      h+='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
+      h+='<div>';
+      if(e.ai&&e.ai.mood)h+='<span class="mood-dot" style="background:'+moodColor+'"></span>';
+      h+='<span class="diary-date">'+fmtDate(date)+'</span>';
+      if(e.ai&&e.ai.stress_signal&&e.ai.stress_signal!=='low'){var sc=e.ai.stress_signal==='high'?'var(--red)':'var(--amber)';h+=' <span style="font-size:10px;color:'+sc+';">⚡ '+e.ai.stress_signal+' stress</span>';}
+      h+='</div>';
+      if(bio){
+        h+='<div style="display:flex;gap:8px;">';
+        if(bio.hrv)h+='<span style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--muted);">HRV '+bio.hrv+'ms</span>';
+        if(bio.readiness)h+='<span style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--muted);">R '+bio.readiness+'</span>';
+        if(bio.sleep_hours)h+='<span style="font-size:10px;font-family:SF Mono,Monaco,monospace;color:var(--muted);">'+bio.sleep_hours.toFixed(1)+'h</span>';
+        h+='</div>';
+      }
+      h+='</div>';
+
+      // AI summary or raw preview
+      if(e.ai&&e.ai.summary){
+        h+='<div style="font-size:12px;line-height:1.5;margin-bottom:8px;">'+esc(e.ai.summary)+'</div>';
+      } else if(e.text){
+        h+='<div style="font-size:12px;color:var(--muted);line-height:1.4;margin-bottom:8px;">'+esc(e.text.slice(0,150))+(e.text.length>150?'…':'')+'</div>';
+      } else {
+        h+='<div style="font-size:12px;color:var(--muted);margin-bottom:8px;font-style:italic;">Tags only — no text logged</div>';
+      }
+
+      // Tags / extracted data
+      var showPills=[];
+      if(e.ai&&e.ai.foods_mentioned&&e.ai.foods_mentioned.length)e.ai.foods_mentioned.slice(0,3).forEach(function(f){showPills.push({t:'🍽 '+f,c:'var(--muted)',bg:'var(--bg)',border:'var(--border)'});});
+      if(e.ai&&e.ai.symptoms&&e.ai.symptoms.length)e.ai.symptoms.forEach(function(s){showPills.push({t:'⚠ '+s,c:'var(--red)',bg:'var(--rl)',border:'var(--red)'});});
+      if(e.ai&&e.ai.morning_quality&&e.ai.morning_quality!=='not_mentioned')showPills.push({t:'☀ morning: '+e.ai.morning_quality,c:'var(--muted)',bg:'var(--bg)',border:'var(--border)'});
+      if(e.ai&&e.ai.workout_quality&&e.ai.workout_quality!=='not_mentioned'&&e.ai.workout_quality!=='rest_day')showPills.push({t:'💪 '+e.ai.workout_quality+' session',c:'var(--muted)',bg:'var(--bg)',border:'var(--border)'});
+      if(e.meal_heaviness)showPills.push({t:e.meal_heaviness+' meal',c:'var(--muted)',bg:'var(--bg)',border:'var(--border)'});
+      if(e.dinner_hour)showPills.push({t:'dinner '+formatDinnerTime(e.dinner_hour),c:'var(--muted)',bg:'var(--bg)',border:'var(--border)'});
+      if(e.ai&&e.ai.suggested_tags&&e.ai.suggested_tags.length){e.ai.suggested_tags.slice(0,2).forEach(function(t){showPills.push({t:t,c:'var(--purple)',bg:'var(--pl)',border:'var(--purple)'});});}
+      if(showPills.length){
+        h+='<div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px;">';
+        showPills.slice(0,6).forEach(function(p){h+='<span style="font-size:10px;padding:2px 8px;border-radius:10px;background:'+p.bg+';border:1px solid '+p.border+';color:'+p.c+';">'+esc(p.t)+'</span>';});
+        h+='</div>';
+      }
+
+      // Expand/collapse full text
+      if(e.text){
+        h+='<button onclick="toggleDiary(\''+date+'\')" style="font-size:11px;color:var(--muted);padding:0;">'+(isExpanded?'▲ hide full entry':'▼ read full entry')+'</button>';
+        if(isExpanded){
+          h+='<div style="margin-top:10px;padding:10px 12px;background:var(--bg);border-radius:8px;font-size:12px;color:var(--text);line-height:1.6;white-space:pre-wrap;">'+esc(e.text)+'</div>';
+          // Re-run AI tag if no AI data yet and API key exists
+          if(!e.ai&&S.apiKey)h+='<button data-retag="'+esc(date)+'" onclick="retagEntry(\''+date.replace(/'/g,"\\'")+'\')" style="font-size:11px;color:var(--purple);margin-top:8px;padding:5px 10px;border:1px solid var(--purple);border-radius:8px;">✦ Generate AI summary</button>';
+        }
+      }
+
+      h+='</div>';
+    });
+
+    if(dates.length<allDates.length){
+      h+='<div style="font-size:11px;color:var(--muted);text-align:center;padding:8px 0;">Showing '+dates.length+' of '+allDates.length+' entries (filtered)</div>';
+    }
+  }
+
+  h+='</div>';
+  return h;
+}
+
+async function retagEntry(date){
+  var e=S.entries[date];if(!e||!e.text)return;
+  if(!S.apiKey){alert('Add your Claude API key on the connect screen to enable AI analysis.');return;}
+  var btn=document.querySelector('[data-retag="'+date+'"]');
+  if(btn){btn.textContent='✦ Generating...';btn.disabled=true;}
+  var meta={meal_heaviness:e.meal_heaviness,dinner_time:e.dinner_hour?formatDinnerTime(e.dinner_hour):null};
+  var ai=await autoTagEntry(e.text,[],meta);
+  if(ai){
+    S.entries[date].ai=ai;
+    if(ai.suggested_tags)S.entries[date].tags=ai.suggested_tags.slice();
+    persistEntries();
+    document.getElementById('tc-journal').innerHTML=rJournal();
+  } else {
+    if(btn){
+      btn.textContent='✦ Failed — check console (F12)';
+      btn.style.color='var(--red)';
+      btn.disabled=false;
+    }
+  }
+}
+
+// ═══════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════
+function goTab(tab){
+  ['today','report','journal','trends'].forEach(function(t){
+    document.getElementById('tb-'+t).className='tab-btn'+(t===tab?' active':'');
+    document.getElementById('tc-'+t).className='screen'+(t===tab?' active':'');
+  });
+  if(tab==='report'&&!S.rep&&!S.repLoading){
+    S.repLoading=true;document.getElementById('tc-report').innerHTML=rReport();
+    callClaude().then(function(r){S.rep=r;S.repLoading=false;document.getElementById('tc-report').innerHTML=rReport();});
+  }
+  if(tab==='journal')document.getElementById('tc-journal').innerHTML=rJournal();
+  if(tab==='trends')document.getElementById('tc-trends').innerHTML=rTrends();
+}
+function setTT(tab){S.trendsTab=tab;document.getElementById('tc-trends').innerHTML=rTrends();}
+
+// ═══════════════════════════════════════════
+// LOAD & RESET
+// ═══════════════════════════════════════════
+function loadData(data){
+  if(!data||!data.length){showErr('No valid data found.');return;}
+  S.an=analyze(data);S.rep=null;S.repLoading=false;S.trendsTab='recovery';S.mealHeaviness=null;S.dinnerTime=20.5;
+  document.getElementById('sc-connect').className='screen';
+  document.getElementById('sc-app').className='screen active';
+  document.getElementById('tc-today').innerHTML=rToday();
+  goTab('today');
+}
+function doReset(){
+  S.an=null;S.mode='token';S.rep=null;S.repLoading=false;S.trendsTab='recovery';
+  S.mealHeaviness=null;S.dinnerTime=20.5;S.ouraToken=null;
+  document.getElementById('sc-app').className='screen';
+  document.getElementById('sc-connect').className='screen active';
+  document.getElementById('tkn').value='';document.getElementById('bcn').disabled=true;
+  ['today','report','journal','trends'].forEach(function(t){document.getElementById('tb-'+t).className='tab-btn'+(t==='today'?' active':'');document.getElementById('tc-'+t).className='screen'+(t==='today'?' active':'');});
+}
+
+// ═══════════════════════════════════════════
+// CONNECT HANDLERS  (with proper error messages)
+// ═══════════════════════════════════════════
+async function doToken(){
+  var token=document.getElementById('tkn').value.trim();if(!token)return;
+  var btn=document.getElementById('bcn');btn.textContent='Connecting...';btn.disabled=true;hideErr();
+  try{
+    var data=await fetchOura(token);
+    if(data.length){
+      S.ouraToken=token;
+      persistCredentials();
+      loadData(data);
+    } else showErr('Connected but no data returned. Make sure your ring has synced and the date range has data.');
+  }catch(e){
+    if(e.message==='auth_401')showErr('Token rejected (401). Double-check your Oura Personal Access Token at cloud.ouraring.com/personal-access-tokens');
+    else if(e.message==='auth_403')showErr('Access denied (403). Token may have expired. Generate a new one at cloud.ouraring.com/personal-access-tokens');
+    else if(e.message==='no_hrv')showErr('Connected and data received, but HRV readings are missing. Try opening the Oura app and forcing a sync, then reconnect.');
+    else if(e.message&&e.message.startsWith('http_'))showErr('Oura API error: '+e.message+'. Try again or switch to CSV upload.');
+    else if(e.name==='TypeError'||(e.message&&(e.message.includes('fetch')||e.message.includes('Failed')||e.message.includes('network'))))showErr('Could not reach the proxy server. Make sure the proxy is deployed and the URL is correct in the Proxy URL field.');
+    else showErr('Connection failed: '+(e.message||'unknown error')+'. Try CSV upload instead.');
+    btn.textContent='Connect Oura →';btn.disabled=!document.getElementById('tkn').value.trim();return;
+  }
+  btn.textContent='Connect Oura →';btn.disabled=false;
+}
+
+// ── PRE-FILL saved credentials on page load ──
+window.addEventListener('DOMContentLoaded',function(){
+  var creds=loadCredentials();
+  if(creds.ouraToken){
+    var tknEl=document.getElementById('tkn');
+    if(tknEl){tknEl.value=creds.ouraToken;}
+    var bcn=document.getElementById('bcn');
+    if(bcn)bcn.disabled=false;
+  }
+  if(creds.apiKey){
+    var akeyEl=document.getElementById('akey');
+    if(akeyEl)akeyEl.value=creds.apiKey;
+    S.apiKey=creds.apiKey;
+  }
+});
+function doCSV(input){
+  var file=input.files[0];if(!file)return;
+  var reader=new FileReader();
+  reader.onload=function(ev){try{loadData(parseCSV(ev.target.result));}catch(e){showErr('Error parsing file: '+e.message);}};
+  reader.readAsText(file);
+}
+function showErr(msg){var el=document.getElementById('err-box');el.innerHTML=msg;el.style.display='block';}
+function hideErr(){document.getElementById('err-box').style.display='none';}
+</script>
+</body>
+</html>
